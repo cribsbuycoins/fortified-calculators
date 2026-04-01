@@ -136,12 +136,30 @@
       };
     });
 
-    // ===== ARV ROWS =====
+    // ===== ARV ROWS — max 10, evenly spaced =====
     const arvRows = [];
-    if (arvLow > 0 && arvHigh >= arvLow) {
-      for (let arv = arvLow; arv <= arvHigh + 0.01; arv += 5000) {
+    if (arvLow > 0 && arvHigh > arvLow) {
+      const spread = arvHigh - arvLow;
+      // 10 rows means 9 intervals
+      const rawStep = spread / 9;
+      // Round step to nearest clean number (1000, 2500, 5000, 10000, etc.)
+      const step = rawStep <= 1000 ? 1000
+                 : rawStep <= 2500 ? 2500
+                 : rawStep <= 5000 ? 5000
+                 : rawStep <= 10000 ? 10000
+                 : rawStep <= 25000 ? 25000
+                 : 50000;
+      for (let arv = arvLow; arv <= arvHigh + 0.01; arv += step) {
         arvRows.push(Math.round(arv));
+        if (arvRows.length >= 10) break;
       }
+      // Ensure the high end is always included
+      if (arvRows[arvRows.length - 1] !== Math.round(arvHigh)) {
+        if (arvRows.length >= 10) arvRows[9] = Math.round(arvHigh);
+        else arvRows.push(Math.round(arvHigh));
+      }
+    } else if (arvLow > 0 && arvHigh === arvLow) {
+      arvRows.push(Math.round(arvLow));
     }
 
     // ===== BUILD ALL TABLES =====
