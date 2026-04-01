@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real Estate Calculators — Fortified Realty Group</title>
+  <meta name="description" content="Free real estate analysis calculators from Fortified Realty Group, LLC — Buy and Hold, BRRR, Selling Analyzer, and more. Fall River, MA.">
+  <meta name="theme-color" content="#00344D">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./base.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="./index.html" class="logo-link">
+        <svg class="logo-svg" width="36" height="36" viewBox="0 0 36 36" fill="none" aria-label="Fortified Realty Group">
+          <rect x="2" y="8" width="32" height="24" rx="2" stroke="#38bdf8" stroke-width="2" fill="none"/>
+          <path d="M10 8V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" stroke="#38bdf8" stroke-width="2" fill="none"/>
+          <path d="M18 14v12M12 20h12" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"/>
+          <rect x="7" y="26" width="6" height="6" rx="1" fill="#00344D" stroke="#38bdf8" stroke-width="1.5"/>
+          <rect x="23" y="26" width="6" height="6" rx="1" fill="#00344D" stroke="#38bdf8" stroke-width="1.5"/>
+        </svg>
+        <div class="logo-text">
+          Fortified Realty Group
+          <span>Real Estate Calculators</span>
+        </div>
+      </a>
+      <button class="install-btn" id="installBtn" aria-label="Install app">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        Install
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Run the Numbers. <em>Know the Deal.</em></h1>
+    <hr class="teal-rule">
+    <p>Free real estate analysis tools built by an investor, for investors. No login, no email capture — just the math that matters.</p>
+  </section>
+
+  <!-- Calculator Grid -->
+  <main class="calc-grid">
+
+    <!-- Buy and Hold -->
+    <a href="./buy-and-hold.html" class="calc-card">
+      <div class="card-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <h2>Buy &amp; Hold Analyzer</h2>
+      <p>Analyze cash flow, cap rate, cash-on-cash return, and DSCR for rental properties with up to 20 units.</p>
+      <div class="card-status live">
+        <span class="dot"></span>
+        Live
+      </div>
+    </a>
+
+    <!-- BRRR (Coming Soon) -->
+    <div class="calc-card disabled">
+      <div class="card-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+        </svg>
+      </div>
+      <h2>BRRR Analyzer</h2>
+      <p>Buy, Rehab, Rent, Refinance — model your full-cycle BRRR deal from purchase to refi.</p>
+      <div class="card-status coming">
+        <span class="dot"></span>
+        Coming Soon
+      </div>
+    </div>
+
+    <!-- Selling Analyzer (Coming Soon) -->
+    <div class="calc-card disabled">
+      <div class="card-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23"/>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+      <h2>Selling Analyzer</h2>
+      <p>Estimate net proceeds after commissions, closing costs, and payoff to know your true take-home.</p>
+      <div class="card-status coming">
+        <span class="dot"></span>
+        Coming Soon
+      </div>
+    </div>
+
+    <!-- Rent vs Buy (Coming Soon) -->
+    <div class="calc-card disabled">
+      <div class="card-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"/>
+          <rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/>
+        </svg>
+      </div>
+      <h2>Rent vs. Buy</h2>
+      <p>Compare the long-term financial impact of renting versus buying for homeowners and investors.</p>
+      <div class="card-status coming">
+        <span class="dot"></span>
+        Coming Soon
+      </div>
+    </div>
+
+    <!-- Mortgage Calculator (Coming Soon) -->
+    <div class="calc-card disabled">
+      <div class="card-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="2"/>
+          <line x1="2" y1="10" x2="22" y2="10"/>
+        </svg>
+      </div>
+      <h2>Mortgage Calculator</h2>
+      <p>Quick P&amp;I, total interest, and amortization schedule for any loan scenario.</p>
+      <div class="card-status coming">
+        <span class="dot"></span>
+        Coming Soon
+      </div>
+    </div>
+
+    <!-- BRRRBBR (Coming Soon) -->
+    <div class="calc-card disabled">
+      <div class="card-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+      </div>
+      <h2>Flip to BRRRBBR</h2>
+      <p>Model a flip-to-hold with Bitcoin reinvestment — the Fortified signature BRRRBBR strategy.</p>
+      <div class="card-status coming">
+        <span class="dot"></span>
+        Coming Soon
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Contact Footer -->
+  <footer class="contact-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <svg width="28" height="28" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <rect x="2" y="8" width="32" height="24" rx="2" stroke="#38bdf8" stroke-width="2" fill="none"/>
+          <path d="M10 8V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4" stroke="#38bdf8" stroke-width="2" fill="none"/>
+          <path d="M18 14v12M12 20h12" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div class="footer-text">
+          <strong>Contact David Ferreira</strong><br>
+          Fortified Realty Group, LLC — Fall River, MA
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="tel:+15087624777" class="footer-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          (508) 762-4777
+        </a>
+        <a href="mailto:david@fortifiedrealty.net" class="footer-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          david@fortifiedrealty.net
+        </a>
+        <a href="https://g.page/r/CXd4xMPDZl3hEB0/review" class="footer-link review-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Leave a Review
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>
