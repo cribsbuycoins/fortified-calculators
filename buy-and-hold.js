@@ -21,7 +21,6 @@
   function fmtPct(n) { return n.toFixed(2) + '%'; }
   function fmtRatio(n) { return n.toFixed(2) + 'x'; }
 
-  // Format input value on blur
   function formatMoneyInput(el) {
     const val = parseNum(el.value);
     if (val === 0 && el.classList.contains('unit-input')) {
@@ -31,7 +30,6 @@
     }
   }
 
-  // Strip formatting on focus
   function stripMoneyInput(el) {
     const val = parseNum(el.value);
     if (val === 0 && el.classList.contains('unit-input')) {
@@ -61,6 +59,29 @@
     el.addEventListener('focus', () => stripMoneyInput(el));
     el.addEventListener('blur', () => formatMoneyInput(el));
   });
+
+  // ===== AUTO-FILL RANGE FROM LIST PRICE =====
+  function syncRangeFromListPrice() {
+    const lp = parseNum(document.getElementById('purchasePrice')?.value);
+    if (lp > 0) {
+      const lowEl = document.getElementById('lowestOffer');
+      const highEl = document.getElementById('highestOffer');
+      const askEl = document.getElementById('askingPrice');
+      if (lowEl) lowEl.value = fmt(lp - 50000);
+      if (highEl) highEl.value = fmt(lp + 50000);
+      if (askEl) askEl.value = fmt(lp);
+      calculate();
+    }
+  }
+
+  const listPriceEl = document.getElementById('purchasePrice');
+  if (listPriceEl) {
+    listPriceEl.addEventListener('change', syncRangeFromListPrice);
+    listPriceEl.addEventListener('blur', () => {
+      formatMoneyInput(listPriceEl);
+      syncRangeFromListPrice();
+    });
+  }
 
   // ===== CALCULATE =====
   function calculate() {
@@ -106,16 +127,16 @@
     const monthlyNOI = totalMonthlyIncome - totalMonthlyExpenses;
     const yearlyNOI = monthlyNOI * 12;
 
-    // --- Debt Service ---
-    const purchasePrice = parseNum(document.getElementById('purchasePrice')?.value);
+    // --- Debt Service (at List Price) ---
+    const listPrice = parseNum(document.getElementById('purchasePrice')?.value);
     const ltvPct = parseNum(document.getElementById('ltv')?.value) / 100;
     const interestRate = parseNum(document.getElementById('interestRate')?.value) / 100;
     const closingCostPct = parseNum(document.getElementById('closingCostPct')?.value) / 100;
     const loanMonths = parseNum(document.getElementById('loanMonths')?.value);
 
-    const mortgageAmount = purchasePrice * ltvPct;
-    const downPayment = purchasePrice - mortgageAmount;
-    const closingCosts = purchasePrice * closingCostPct;
+    const mortgageAmount = listPrice * ltvPct;
+    const downPayment = listPrice - mortgageAmount;
+    const closingCosts = listPrice * closingCostPct;
     const totalCashToClose = downPayment + closingCosts;
 
     let monthlyPI = 0;
@@ -128,11 +149,11 @@
     }
     const yearlyPI = monthlyPI * 12;
 
-    // --- Results ---
+    // --- Results (at List Price) ---
     const monthlyCashFlow = totalMonthlyIncome - totalMonthlyExpenses - monthlyPI;
     const noi = totalYearlyIncome - totalYearlyExpenses;
     const dscr = monthlyPI > 0 ? (totalMonthlyIncome - totalMonthlyExpenses) / monthlyPI : 0;
-    const capRate = purchasePrice > 0 ? (noi / purchasePrice) * 100 : 0;
+    const capRate = listPrice > 0 ? (noi / listPrice) * 100 : 0;
     const cashOnCash = totalCashToClose > 0 ? ((monthlyCashFlow * 12) / totalCashToClose) * 100 : 0;
 
     // ===== UPDATE DOM =====
@@ -156,7 +177,6 @@
     setResult('capRate', fmtPct(capRate), capRate - 6);
     setResult('cashOnCash', fmtPct(cashOnCash), cashOnCash - 8);
 
-    // --- Build Buying Range Table ---
     buildRangeTable(totalMonthlyIncome, totalMonthlyExpenses, ltvPct, interestRate, closingCostPct, loanMonths);
   }
 
@@ -172,7 +192,7 @@
     el.className = 'result-value ' + (indicator >= 0 ? 'positive' : 'negative');
   }
 
-  // ===== BUYING RANGE TABLE =====
+  // ===== BUYING RANGE TABLE — 7 FIXED COLUMNS =====
   function calcPI(principal, monthlyRate, months) {
     if (principal <= 0 || months <= 0) return 0;
     if (monthlyRate <= 0) return principal / months;
@@ -187,21 +207,25 @@
     const minCapRate = parseNum(document.getElementById('minCapRate')?.value);
     const minCoC = parseNum(document.getElementById('minCoC')?.value);
 
-    if (low <= 0 || high <= 0 || high <= low) return;
+    if (low <= 0 || high <= 0 || high <= low || asking <= low || asking >= high) return;
 
-    const spread = high - low;
-    const increment = spread > 100000 ? 10000 : 5000;
-    const prices = [];
-    for (let p = low; p <= high; p += increment) {
-      prices.push(p);
-    }
-    if (prices[prices.length - 1] !== high) prices.push(high);
+    // 7 columns: Low, 2 between low-ask, Ask, 2 between ask-high, High
+    const lowStep = (asking - low) / 3;
+    const highStep = (high - asking) / 3;
+    const prices = [
+      Math.round(low),
+      Math.round(low + lowStep),
+      Math.round(low + lowStep * 2),
+      Math.round(asking),
+      Math.round(asking + highStep),
+      Math.round(asking + highStep * 2),
+      Math.round(high)
+    ];
 
     const monthlyRate = interestRate / 12;
     const monthlyNOI = totalMonthlyIncome - totalMonthlyExpenses;
     const yearlyNOI = monthlyNOI * 12;
 
-    // Build table data
     const rows = {
       'Purchase Price': [],
       'Mortgage Amount': [],
@@ -245,8 +269,8 @@
     const tbody = document.getElementById('rangeBody');
 
     let headHtml = '<tr><th>Metric</th>';
-    prices.forEach(price => {
-      const isAsking = Math.abs(price - asking) < increment / 2;
+    prices.forEach((price, i) => {
+      const isAsking = i === 3; // The 4th column (index 3) is always the list/asking price
       headHtml += `<th${isAsking ? ' class="asking-col"' : ''}>${fmt(price)}</th>`;
     });
     headHtml += '</tr>';
@@ -257,8 +281,7 @@
 
     Object.keys(rows).forEach(label => {
       const isCond = condRows.includes(label);
-      const isResult = isCond;
-      bodyHtml += `<tr${isResult ? ' class="results-row"' : ''}>`;
+      bodyHtml += `<tr${isCond ? ' class="results-row"' : ''}>`;
       bodyHtml += `<td>${label}</td>`;
       rows[label].forEach((cell, i) => {
         if (isCond && typeof cell === 'object') {
@@ -275,7 +298,6 @@
 
   function getCondClass(value, threshold) {
     if (threshold === 0) {
-      // Cash flow: green if positive, red if negative
       return value >= 0 ? 'cond-green' : 'cond-red';
     }
     if (value >= threshold) return 'cond-green';
@@ -302,7 +324,7 @@
         pmi: '$0', other1: '$0', other2: '$0', other3: '$0', other4: '$0',
         purchasePrice: '$350,000', ltv: '90', interestRate: '7',
         closingCostPct: '3', loanMonths: '360', address: '',
-        lowestOffer: '$350,000', askingPrice: '$400,000', highestOffer: '$450,000',
+        lowestOffer: '$300,000', askingPrice: '$350,000', highestOffer: '$400,000',
         minDSCR: '1.25', minCapRate: '7', minCoC: '5'
       };
       Object.entries(defaults).forEach(([id, val]) => {
@@ -313,7 +335,7 @@
     });
   }
 
-  // ===== SAVE AS PDF — LIGHT MODE =====
+  // ===== SAVE AS PDF — LIGHT MODE WITH FULL DATA =====
   const pdfBtn = document.getElementById('savePdfBtn');
   if (pdfBtn) pdfBtn.addEventListener('click', generatePDF);
 
@@ -344,11 +366,11 @@
     doc.setFillColor(...white);
     doc.rect(0, 0, W, H, 'F');
 
-    // Teal bar at top
+    // Teal bar
     doc.setFillColor(...teal);
     doc.rect(0, 0, W, 3, 'F');
 
-    // Logo — embed the color logo
+    // Logo
     try {
       doc.addImage('./assets/fortified-logo-color.png', 'PNG', margin, y + 1, 50, 9);
     } catch (e) {
@@ -358,7 +380,6 @@
       doc.text('FORTIFIED REALTY GROUP', margin, y + 8);
     }
 
-    // Right side: subtitle + date
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...mutedText);
@@ -374,20 +395,86 @@
     doc.setFontSize(12);
     doc.setTextColor(...darkText);
     doc.text(address, margin, y);
-    y += 5;
+    y += 4;
 
-    // Divider
     doc.setDrawColor(...tealLight);
     doc.setLineWidth(0.4);
     doc.line(margin, y, W - margin, y);
     y += 5;
 
+    // ===== THREE-COLUMN DATA SUMMARY =====
+    const thirdW = (cw - 8) / 3;
+    const colX = [margin, margin + thirdW + 4, margin + (thirdW + 4) * 2];
+
+    function drawDataBlock(x, title, items, startY) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(...teal);
+      doc.text(title.toUpperCase(), x, startY);
+
+      let iy = startY + 4;
+      items.forEach(item => {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        const tc = item.bold ? teal : mutedText;
+        doc.setTextColor(tc[0], tc[1], tc[2]);
+        if (item.bold) doc.setFont('helvetica', 'bold');
+        doc.text(item.label, x, iy);
+        doc.setTextColor(...darkText);
+        doc.text(item.value, x + thirdW - 2, iy, { align: 'right' });
+        iy += 3.5;
+      });
+      return iy;
+    }
+
+    // Collect income data
+    const incomeItems = [];
+    for (let i = 1; i <= NUM_UNITS; i++) {
+      const v = parseNum(document.getElementById('unit' + i)?.value);
+      if (v > 0) incomeItems.push({ label: `Unit ${String(i).padStart(2, '0')}`, value: fmt(v) });
+    }
+    const otherVal = parseNum(document.getElementById('otherIncome')?.value);
+    if (otherVal > 0) incomeItems.push({ label: 'Other Income', value: fmt(otherVal) });
+    incomeItems.push({ label: 'MONTHLY INCOME', value: document.getElementById('totalMonthlyIncome')?.textContent || '$0', bold: true });
+
+    // Expense data
+    const expenseItems = [
+      { label: 'Insurance (Annual)', value: '$' + parseNum(document.getElementById('insurance')?.value).toLocaleString() },
+      { label: 'Taxes (Annual)', value: '$' + parseNum(document.getElementById('taxes')?.value).toLocaleString() },
+      { label: 'Ins/Tax (Monthly)', value: document.getElementById('insTaxMonthly')?.textContent },
+      { label: 'Vacancy (' + document.getElementById('vacancyPct')?.value + '%)', value: document.getElementById('vacancyMonthly')?.textContent },
+      { label: 'Management (' + document.getElementById('managementPct')?.value + '%)', value: document.getElementById('managementMonthly')?.textContent },
+      { label: 'Reserves (' + document.getElementById('reservesPct')?.value + '%)', value: document.getElementById('reservesMonthly')?.textContent },
+      { label: 'Electric', value: fmt(parseNum(document.getElementById('electric')?.value)) },
+      { label: 'Repairs', value: fmt(parseNum(document.getElementById('repairs')?.value)) },
+      { label: 'MONTHLY EXPENSES', value: document.getElementById('totalMonthlyExpenses')?.textContent || '$0', bold: true }
+    ];
+
+    // Debt data
+    const debtItems = [
+      { label: 'List Price', value: fmt(parseNum(document.getElementById('purchasePrice')?.value)) },
+      { label: 'LTV', value: document.getElementById('ltv')?.value + '%' },
+      { label: 'Interest Rate', value: document.getElementById('interestRate')?.value + '%' },
+      { label: 'Closing Cost', value: document.getElementById('closingCostPct')?.value + '%' },
+      { label: 'Loan Term', value: document.getElementById('loanMonths')?.value + ' months' },
+      { label: 'Mortgage Amount', value: document.getElementById('mortgageAmount')?.textContent },
+      { label: 'Down Payment', value: document.getElementById('downPayment')?.textContent },
+      { label: 'Closing Costs', value: document.getElementById('closingCosts')?.textContent },
+      { label: 'CASH TO CLOSE', value: document.getElementById('totalCashToClose')?.textContent || '$0', bold: true }
+    ];
+
+    drawDataBlock(colX[0], 'Income', incomeItems, y);
+    drawDataBlock(colX[1], 'Expenses', expenseItems, y);
+    const endY = drawDataBlock(colX[2], 'Debt Service', debtItems, y);
+
+    y = Math.max(endY, y + incomeItems.length * 3.5 + 6, y + expenseItems.length * 3.5 + 6) + 3;
+
     // === RESULTS SUMMARY BAR ===
     doc.setFillColor(...lightBg);
-    doc.roundedRect(margin, y, cw, 18, 2, 2, 'F');
+    doc.roundedRect(margin, y, cw, 16, 2, 2, 'F');
     doc.setDrawColor(...tealLight);
     doc.setLineWidth(0.3);
-    doc.roundedRect(margin, y, cw, 18, 2, 2, 'S');
+    doc.roundedRect(margin, y, cw, 16, 2, 2, 'S');
 
     const results = [
       { label: 'Monthly NOI', value: document.getElementById('monthlyNOI')?.textContent },
@@ -398,32 +485,30 @@
       { label: 'Cash to Close', value: document.getElementById('totalCashToClose')?.textContent }
     ];
 
-    const colW = cw / results.length;
+    const rColW = cw / results.length;
     results.forEach((r, i) => {
-      const cx = margin + colW * i + colW / 2;
+      const cx = margin + rColW * i + rColW / 2;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
+      doc.setFontSize(5.5);
       doc.setTextColor(...mutedText);
-      doc.text(r.label.toUpperCase(), cx, y + 6, { align: 'center' });
-
+      doc.text(r.label.toUpperCase(), cx, y + 5, { align: 'center' });
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
+      doc.setFontSize(10);
       doc.setTextColor(...teal);
-      doc.text(r.value || '--', cx, y + 13, { align: 'center' });
+      doc.text(r.value || '--', cx, y + 12, { align: 'center' });
     });
 
-    y += 23;
+    y += 20;
 
     // === BUYING RANGE TABLE ===
     const table = document.getElementById('rangeTable');
     if (table && table.rows.length > 1) {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setTextColor(...teal);
       doc.text('BUYING RANGE ANALYSIS', margin, y);
-      y += 4;
+      y += 3;
 
-      // Extract table data
       const headers = [];
       const headRow = table.querySelector('thead tr');
       if (headRow) {
@@ -456,8 +541,8 @@
         startY: y,
         margin: { left: margin, right: margin },
         styles: {
-          fontSize: 6.5,
-          cellPadding: 1.5,
+          fontSize: 7,
+          cellPadding: 1.8,
           textColor: darkText,
           lineColor: [200, 200, 200],
           lineWidth: 0.2,
@@ -469,11 +554,11 @@
           fillColor: teal,
           textColor: white,
           fontStyle: 'bold',
-          fontSize: 6,
+          fontSize: 7,
           halign: 'right'
         },
         columnStyles: {
-          0: { halign: 'left', fontStyle: 'bold', cellWidth: 32, textColor: mutedText }
+          0: { halign: 'left', fontStyle: 'bold', cellWidth: 34, textColor: mutedText }
         },
         alternateRowStyles: { fillColor: [250, 250, 252] },
         didParseCell: function (data) {
@@ -482,6 +567,10 @@
             data.cell.styles.fillColor = style.fillColor;
             data.cell.styles.textColor = style.textColor;
             data.cell.styles.fontStyle = 'bold';
+          }
+          // Highlight asking/list price column header
+          if (data.section === 'head' && data.column.index === 4) {
+            data.cell.styles.fillColor = tealLight;
           }
         }
       });
@@ -502,7 +591,6 @@
     doc.setFontSize(5.5);
     doc.text('This analysis is for informational purposes only. Not financial advice. Consult with qualified professionals before making investment decisions.', margin, fy + 7.5);
 
-    // Save
     const addrClean = (document.getElementById('address')?.value || 'analysis').replace(/[^a-zA-Z0-9]/g, '-').substring(0, 40);
     doc.save(`Fortified-BuyHold-${addrClean}.pdf`);
   }
