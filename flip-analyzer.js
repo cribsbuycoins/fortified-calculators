@@ -28,13 +28,11 @@
     el.value = val === 0 ? '0' : val;
   }
 
-  // ===== MONEY INPUT EVENT HANDLERS =====
   document.querySelectorAll('.money-input').forEach(el => {
     el.addEventListener('focus', () => stripMoneyInput(el));
     el.addEventListener('blur', () => formatMoneyInput(el));
   });
 
-  // ===== HELPERS =====
   function setText(id, val) {
     const el = document.getElementById(id);
     if (el) el.textContent = val;
@@ -44,142 +42,147 @@
     return parseNum(document.getElementById(id)?.value);
   }
 
+  // ===== MONTHS CONFIG: 2 through 16 =====
+  const MONTHS = [2, 4, 6, 8, 10, 12, 14, 16];
+  const MONTH_LABELS = MONTHS.map(m => m + ' Mo.');
+
   // ===== CALCULATE =====
   function calculate() {
 
     // --- Entry Strategy Inputs ---
-    const purchasePrice       = getVal('purchasePrice');
-    const rehab               = getVal('rehab');
-    const closingInLoan       = getVal('closingInLoan');
-    const hmlPoints           = getVal('hmlPoints');      // percent
-    const hmlRate             = getVal('hmlRate');         // percent
-    const hmlLtv              = getVal('hmlLtv');          // percent
-    const otherUpFront        = getVal('otherUpFront');
-    const addlRehabNotInLoan  = getVal('addlRehabNotInLoan');
-    const helocRate           = getVal('helocRate');       // percent
-    const helocAmount         = getVal('helocAmount');
+    const purchasePrice      = getVal('purchasePrice');
+    const rehab              = getVal('rehab');
+    const closingInLoan      = getVal('closingInLoan');
+    const hmlPointsPct       = getVal('hmlPoints');
+    const hmlRatePct         = getVal('hmlRate');
+    const hmlLtvPct          = getVal('hmlLtv');
+    const otherUpFront       = getVal('otherUpFront');
+    const addlRehabNotInLoan = getVal('addlRehabNotInLoan');
+    const helocRatePct       = getVal('helocRate');
+    const helocAmount        = getVal('helocAmount');
 
     // --- Holding Cost Inputs ---
-    const taxesAnnual         = getVal('taxesAnnual');
-    const insuranceAnnual     = getVal('insuranceAnnual');
-    const utilitiesMonthly    = getVal('utilitiesMonthly');
-    const otherCostAnnual     = getVal('otherCostAnnual');
-    const otherCostMonthly    = getVal('otherCostMonthly');
+    const taxesAnnual        = getVal('taxesAnnual');
+    const insuranceAnnual    = getVal('insuranceAnnual');
+    const utilitiesMonthly   = getVal('utilitiesMonthly');
+    const otherCostAnnual    = getVal('otherCostAnnual');
+    const otherCostMonthly   = getVal('otherCostMonthly');
 
     // --- Exit Strategy Inputs ---
-    const arvLow              = getVal('arvLow');
-    const arvHigh             = getVal('arvHigh');
-    const brokerFee           = getVal('brokerFee');       // percent
-    const otherClosingPct     = getVal('otherClosingPct'); // percent
+    const arvLow             = getVal('arvLow');
+    const arvHigh            = getVal('arvHigh');
+    const brokerFeePct       = getVal('brokerFee');
+    const otherClosingPct    = getVal('otherClosingPct');
 
-    // ===== ENTRY STRATEGY =====
-    const totalCostBasis      = purchasePrice + rehab + closingInLoan;
-    const hmlLoan             = totalCostBasis * (hmlLtv / 100);
-    const pointsUpFront       = hmlLoan * (hmlPoints / 100);
-    const hmlCashToClose      = totalCostBasis - hmlLoan;
-    const leftOverHeloc       = Math.max(0, helocAmount - addlRehabNotInLoan);
-    const adjustedCashToClose = hmlCashToClose + pointsUpFront + otherUpFront + addlRehabNotInLoan;
+    // ===== ENTRY STRATEGY CALCS =====
+    const totalCostBasis = purchasePrice + rehab + closingInLoan;
+    const hmlLoan        = totalCostBasis * (hmlLtvPct / 100);
+    const pointsUpFront  = hmlLoan * (hmlPointsPct / 100);
+    const hmlCashToClose = totalCostBasis - hmlLoan;
+
+    // Cash needed before HELOC offset
+    const cashNeeded = hmlCashToClose + pointsUpFront + otherUpFront + addlRehabNotInLoan;
+
+    // HELOC offsets the cash to close
+    const adjustedCashToClose = Math.max(0, cashNeeded - helocAmount);
+
+    // Left Over HELOC = whatever HELOC remains after covering cash to close
+    const helocUsedForClose = Math.min(helocAmount, cashNeeded);
+    const leftOverHeloc     = helocAmount - helocUsedForClose;
 
     // ===== HOLDING COSTS =====
-    const helocPayment        = helocAmount * (helocRate / 100) / 12;
-    const hmlPayment          = hmlLoan * (hmlRate / 100) / 12;
-    const totalMonthlyDebt    = helocPayment + hmlPayment;
-    const monthlyCarryCost    = totalMonthlyDebt
-                               + (taxesAnnual / 12)
-                               + (insuranceAnnual / 12)
-                               + utilitiesMonthly
-                               + (otherCostAnnual / 12)
-                               + otherCostMonthly;
+    const helocPayment     = helocAmount * (helocRatePct / 100) / 12;
+    const hmlPayment       = hmlLoan * (hmlRatePct / 100) / 12;
+    const totalMonthlyDebt = helocPayment + hmlPayment;
+    const monthlyCarryCost = totalMonthlyDebt
+                           + (taxesAnnual / 12)
+                           + (insuranceAnnual / 12)
+                           + utilitiesMonthly
+                           + (otherCostAnnual / 12)
+                           + otherCostMonthly;
 
     // ===== EXIT STRATEGY =====
-    const totalSellingPct     = brokerFee + otherClosingPct;
+    const totalSellingPct = brokerFeePct + otherClosingPct;
 
-    // ===== UPDATE ENTRY STRATEGY DOM =====
+    // ===== UPDATE DOM =====
     setText('totalCostBasis',      fmt(totalCostBasis));
-    setText('pointsUpFront',       fmt(pointsUpFront));
-    setText('hmlLoan',             fmt(hmlLoan));
-    setText('hmlCashToClose',      fmt(hmlCashToClose));
-    setText('leftOverHeloc',       fmt(leftOverHeloc));
-    setText('adjustedCashToClose', fmt(adjustedCashToClose));
-
-    // ===== UPDATE HOLDING COSTS DOM =====
-    setText('helocPayment',        fmt(helocPayment));
-    setText('hmlPayment',          fmt(hmlPayment));
-    setText('totalMonthlyDebt',    fmt(totalMonthlyDebt));
-    setText('monthlyCarryCost',    fmt(monthlyCarryCost));
-
-    // ===== UPDATE EXIT STRATEGY DOM =====
+    setText('pointsUpFront',       fmt(Math.round(pointsUpFront)));
+    setText('hmlLoan',             fmt(Math.round(hmlLoan)));
+    setText('hmlCashToClose',      fmt(Math.round(hmlCashToClose)));
+    setText('leftOverHeloc',       fmt(Math.round(leftOverHeloc)));
+    setText('adjustedCashToClose', fmt(Math.round(adjustedCashToClose)));
+    setText('helocPayment',        fmt(Math.round(helocPayment)));
+    setText('hmlPayment',          fmt(Math.round(hmlPayment)));
+    setText('totalMonthlyDebt',    fmt(Math.round(totalMonthlyDebt)));
+    setText('monthlyCarryCost',    fmt(Math.round(monthlyCarryCost)));
     setText('totalSellingPct',     fmtPct(totalSellingPct));
 
-    // ===== BUILD MATRICES =====
-    const months = [2, 4, 6, 8];
-    const monthLabels = ['2 Mo.', '4 Mo.', '6 Mo.', '8 Mo.'];
-
-    // Generate ARV rows: low to high in $5,000 steps (11 rows max)
-    const arvRows = [];
-    if (arvLow > 0 && arvHigh >= arvLow) {
-      const step = 5000;
-      const rawHigh = arvLow + step * 10; // 11 rows: indices 0–10
-      const clampedHigh = Math.min(arvHigh, rawHigh);
-      for (let arv = arvLow; arv <= clampedHigh + 0.01; arv += step) {
-        arvRows.push(Math.round(arv));
-      }
-      // If arvHigh is not already the last element, add it
-      if (arvRows[arvRows.length - 1] !== Math.round(arvHigh) && arvHigh > arvLow) {
-        // Replace last with high only if it fits exactly
-      }
-    }
-
-    // Pre-compute per-month totals for summary table (fixed, not per ARV)
-    // These depend only on months and carry cost
-    const summaryData = months.map(m => {
+    // ===== PER-MONTH SUMMARY DATA =====
+    // HELOC leftover covers holding costs until depleted
+    const summaryData = MONTHS.map(m => {
       const totalHoldingCosts = monthlyCarryCost * m;
-      const netCashInDeal     = adjustedCashToClose + totalHoldingCosts - leftOverHeloc;
+      // leftOverHeloc can cover holding costs
+      const helocUsedAfterClosing = Math.min(leftOverHeloc, totalHoldingCosts);
+      const netCashInDeal = adjustedCashToClose + totalHoldingCosts - helocUsedAfterClosing;
+      // HELOC balance owed = what was drawn for close + what was drawn for holding
+      const helocBalanceOwed = helocUsedForClose + helocUsedAfterClosing;
+
       return {
         totalHoldingCosts,
-        leftOverHeloc,
+        helocUsedAfterClosing,
         netCashInDeal,
-        helocBalanceOwed: helocAmount,
+        helocBalanceOwed,
         hmlOwed: hmlLoan
       };
     });
 
-    // ===== PROFIT MATRIX =====
-    buildProfitTable(arvRows, months, monthLabels, monthlyCarryCost, totalSellingPct,
-                     helocAmount, hmlLoan, adjustedCashToClose, summaryData);
+    // ===== ARV ROWS =====
+    const arvRows = [];
+    if (arvLow > 0 && arvHigh >= arvLow) {
+      for (let arv = arvLow; arv <= arvHigh + 0.01; arv += 5000) {
+        arvRows.push(Math.round(arv));
+      }
+    }
 
-    // ===== SUMMARY TABLE =====
-    buildSummaryTable(months, monthLabels, summaryData);
+    // ===== BUILD ALL TABLES =====
+    buildProfitTable(arvRows, summaryData, totalSellingPct, helocAmount, hmlLoan, adjustedCashToClose, monthlyCarryCost, leftOverHeloc);
+    buildSummaryTable(summaryData);
+    buildCoCTable(arvRows, summaryData, totalSellingPct, helocAmount, hmlLoan, adjustedCashToClose, monthlyCarryCost, leftOverHeloc);
+  }
 
-    // ===== CASH ON CASH TABLE =====
-    buildCoCTable(arvRows, months, monthLabels, monthlyCarryCost, totalSellingPct,
-                  helocAmount, hmlLoan, adjustedCashToClose, summaryData);
+  // ===== GROSS PROFIT FOR A GIVEN ARV AND MONTH INDEX =====
+  function calcGrossProfit(arv, mi, totalSellingPct, helocAmount, hmlLoan, adjustedCashToClose, monthlyCarryCost, leftOverHeloc) {
+    const m = MONTHS[mi];
+    const totalHoldingCosts = monthlyCarryCost * m;
+    const sellingCosts = arv * (totalSellingPct / 100);
+    const helocUsedAfterClosing = Math.min(leftOverHeloc, totalHoldingCosts);
+    // helocBalanceOwed = what was used at close + what was used for holding
+    const helocUsedForClose = helocAmount - leftOverHeloc;
+    const helocBalanceOwed = helocUsedForClose + helocUsedAfterClosing;
+    // Gross Profit = Sale Price - Selling Costs - HELOC Payback - HML Balance - Holding Costs - Up Front Cash
+    const grossProfit = arv - sellingCosts - helocBalanceOwed - hmlLoan - totalHoldingCosts - adjustedCashToClose;
+    return grossProfit;
   }
 
   // ===== PROFIT MATRIX TABLE =====
-  function buildProfitTable(arvRows, months, monthLabels, monthlyCarryCost, totalSellingPct,
-                            helocAmount, hmlLoan, adjustedCashToClose, summaryData) {
+  function buildProfitTable(arvRows, summaryData, totalSellingPct, helocAmount, hmlLoan, adjustedCashToClose, monthlyCarryCost, leftOverHeloc) {
     const thead = document.getElementById('profitHead');
-    const tbody  = document.getElementById('profitBody');
+    const tbody = document.getElementById('profitBody');
     if (!thead || !tbody) return;
 
-    // Header
     let headHtml = '<tr><th>ARV</th>';
-    monthLabels.forEach(lbl => { headHtml += `<th>${lbl}</th>`; });
+    MONTH_LABELS.forEach(lbl => { headHtml += `<th>${lbl}</th>`; });
     headHtml += '</tr>';
     thead.innerHTML = headHtml;
 
-    // Body
     let bodyHtml = '';
     arvRows.forEach(arv => {
       bodyHtml += '<tr>';
       bodyHtml += `<td>${fmt(arv)}</td>`;
-      months.forEach((m, mi) => {
-        const totalHoldingCosts = monthlyCarryCost * m;
-        const sellingCosts      = arv * (totalSellingPct / 100);
-        const grossProfit       = arv - sellingCosts - helocAmount - hmlLoan - totalHoldingCosts - adjustedCashToClose;
-        const cls               = grossProfit > 0 ? 'cond-green' : 'cond-red';
-        bodyHtml += `<td class="${cls}">${fmt(grossProfit)}</td>`;
+      MONTHS.forEach((m, mi) => {
+        const gp = calcGrossProfit(arv, mi, totalSellingPct, helocAmount, hmlLoan, adjustedCashToClose, monthlyCarryCost, leftOverHeloc);
+        const cls = gp >= 0 ? 'cond-green' : 'cond-red';
+        bodyHtml += `<td class="${cls}">${fmt(Math.round(gp))}</td>`;
       });
       bodyHtml += '</tr>';
     });
@@ -187,87 +190,80 @@
   }
 
   // ===== SUMMARY TABLE =====
-  function buildSummaryTable(months, monthLabels, summaryData) {
+  function buildSummaryTable(summaryData) {
     const thead = document.getElementById('summaryHead');
-    const tbody  = document.getElementById('summaryBody');
+    const tbody = document.getElementById('summaryBody');
     if (!thead || !tbody) return;
 
-    // Header
     let headHtml = '<tr><th>Summary</th>';
-    monthLabels.forEach(lbl => { headHtml += `<th>${lbl}</th>`; });
+    MONTH_LABELS.forEach(lbl => { headHtml += `<th>${lbl}</th>`; });
     headHtml += '</tr>';
     thead.innerHTML = headHtml;
 
-    // Rows
     const rows = [
-      {
-        label: 'Total Holding Costs',
-        values: summaryData.map(d => fmt(d.totalHoldingCosts))
-      },
-      {
-        label: 'HELOC Used After Closing',
-        values: summaryData.map(d => fmt(d.leftOverHeloc))
-      },
-      {
-        label: 'Net Cash In Deal',
-        values: summaryData.map(d => fmt(d.netCashInDeal)),
-        bold: true
-      },
-      {
-        label: 'HELOC Balance Owed',
-        values: summaryData.map(d => fmt(d.helocBalanceOwed))
-      },
-      {
-        label: 'HML Owed',
-        values: summaryData.map(d => fmt(d.hmlOwed))
-      }
+      { label: 'Total Holding Costs', key: 'totalHoldingCosts' },
+      { label: 'HELOC Used After Closing', key: 'helocUsedAfterClosing', negate: true },
+      { label: 'Net Cash In Deal', key: 'netCashInDeal', bold: true },
+      { label: 'HELOC Balance Owed', key: 'helocBalanceOwed' },
+      { label: 'HML Owed', key: 'hmlOwed' }
     ];
 
     let bodyHtml = '';
     rows.forEach(row => {
-      const boldStyle = row.bold ? ' style="font-weight:700;"' : '';
-      bodyHtml += `<tr${row.bold ? ' class="results-row"' : ''}>`;
-      bodyHtml += `<td${boldStyle}>${row.label}</td>`;
-      row.values.forEach(v => { bodyHtml += `<td${boldStyle}>${v}</td>`; });
+      const cls = row.bold ? ' class="results-row"' : '';
+      const style = row.bold ? ' style="font-weight:700;"' : '';
+      bodyHtml += `<tr${cls}>`;
+      bodyHtml += `<td${style}>${row.label}</td>`;
+      summaryData.forEach(d => {
+        let val = d[row.key];
+        // Show HELOC Used as negative (money coming in)
+        if (row.negate && val > 0) val = -val;
+        bodyHtml += `<td${style}>${fmt(Math.round(val))}</td>`;
+      });
       bodyHtml += '</tr>';
     });
     tbody.innerHTML = bodyHtml;
   }
 
   // ===== CASH ON CASH TABLE =====
-  function buildCoCTable(arvRows, months, monthLabels, monthlyCarryCost, totalSellingPct,
-                         helocAmount, hmlLoan, adjustedCashToClose, summaryData) {
+  function buildCoCTable(arvRows, summaryData, totalSellingPct, helocAmount, hmlLoan, adjustedCashToClose, monthlyCarryCost, leftOverHeloc) {
     const thead = document.getElementById('cocHead');
-    const tbody  = document.getElementById('cocBody');
+    const tbody = document.getElementById('cocBody');
     if (!thead || !tbody) return;
 
-    // Header
     let headHtml = '<tr><th>ARV</th>';
-    monthLabels.forEach(lbl => { headHtml += `<th>${lbl}</th>`; });
+    MONTH_LABELS.forEach(lbl => { headHtml += `<th>${lbl}</th>`; });
     headHtml += '</tr>';
     thead.innerHTML = headHtml;
 
-    // Body
+    // Add Net Cash In Deal row at bottom
     let bodyHtml = '';
     arvRows.forEach(arv => {
       bodyHtml += '<tr>';
       bodyHtml += `<td>${fmt(arv)}</td>`;
-      months.forEach((m, mi) => {
-        const totalHoldingCosts = monthlyCarryCost * m;
-        const sellingCosts      = arv * (totalSellingPct / 100);
-        const grossProfit       = arv - sellingCosts - helocAmount - hmlLoan - totalHoldingCosts - adjustedCashToClose;
-        const netCashInDeal     = summaryData[mi].netCashInDeal;
-        const coc               = netCashInDeal !== 0 ? (grossProfit / netCashInDeal) * 100 : 0;
+      MONTHS.forEach((m, mi) => {
+        const gp = calcGrossProfit(arv, mi, totalSellingPct, helocAmount, hmlLoan, adjustedCashToClose, monthlyCarryCost, leftOverHeloc);
+        const netCash = summaryData[mi].netCashInDeal;
+        const coc = netCash > 0 ? (gp / netCash) * 100 : (gp > 0 ? 999 : 0);
 
         let cls;
-        if (coc >= 20)       cls = 'cond-green';
-        else if (coc >= 10)  cls = 'cond-yellow';
-        else                  cls = 'cond-red';
+        if (coc >= 20) cls = 'cond-green';
+        else if (coc >= 10) cls = 'cond-yellow';
+        else cls = 'cond-red';
 
         bodyHtml += `<td class="${cls}">${fmtPct(coc)}</td>`;
       });
       bodyHtml += '</tr>';
     });
+
+    // Net Cash In Deal footer row
+    bodyHtml += '<tr class="results-row">';
+    bodyHtml += '<td style="font-weight:700;">Net Cash In Deal</td>';
+    summaryData.forEach(d => {
+      bodyHtml += `<td style="font-weight:700;">${fmt(Math.round(d.netCashInDeal))}</td>`;
+    });
+    bodyHtml += '</tr>';
+
     tbody.innerHTML = bodyHtml;
   }
 
@@ -283,26 +279,14 @@
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
       const defaults = {
-        address:           '',
-        purchasePrice:     '$340,000',
-        rehab:             '$100,000',
-        closingInLoan:     '$0',
-        hmlPoints:         '2',
-        hmlRate:           '12',
-        hmlLtv:            '0',
-        otherUpFront:      '$2,000',
-        addlRehabNotInLoan:'$0',
-        helocRate:         '7',
-        helocAmount:       '$0',
-        taxesAnnual:       '$6,500',
-        insuranceAnnual:   '$3,000',
-        utilitiesMonthly:  '$200',
-        otherCostAnnual:   '$100',
-        otherCostMonthly:  '$0',
-        arvLow:            '$550,000',
-        arvHigh:           '$600,000',
-        brokerFee:         '5',
-        otherClosingPct:   '2'
+        address: '', purchasePrice: '$340,000', rehab: '$100,000',
+        closingInLoan: '$0', hmlPoints: '2', hmlRate: '12', hmlLtv: '90',
+        otherUpFront: '$2,000', addlRehabNotInLoan: '$0',
+        helocRate: '7', helocAmount: '$0',
+        taxesAnnual: '$6,500', insuranceAnnual: '$3,000',
+        utilitiesMonthly: '$200', otherCostAnnual: '$100', otherCostMonthly: '$0',
+        arvLow: '$550,000', arvHigh: '$600,000',
+        brokerFee: '5', otherClosingPct: '2'
       };
       Object.entries(defaults).forEach(([id, val]) => {
         const el = document.getElementById(id);
@@ -312,7 +296,7 @@
     });
   }
 
-  // ===== SAVE AS PDF =====
+  // ===== SAVE AS PDF — LIGHT MODE =====
   const pdfBtn = document.getElementById('savePdfBtn');
   if (pdfBtn) pdfBtn.addEventListener('click', generatePDF);
 
@@ -325,29 +309,18 @@
     const cw = W - margin * 2;
     let y = margin;
 
-    // Colors — Light mode
-    const teal      = [0, 52, 77];
-    const tealLight = [1, 104, 145];
-    const darkText  = [26, 26, 26];
-    const mutedText = [100, 100, 100];
-    const lightBg   = [245, 247, 250];
-    const white     = [255, 255, 255];
-    const green     = [22, 101, 52];
-    const greenBg   = [220, 252, 231];
-    const yellow    = [133, 100, 0];
-    const yellowBg  = [254, 249, 195];
-    const red       = [153, 27, 27];
-    const redBg     = [254, 226, 226];
+    const teal = [0, 52, 77], tealLight = [1, 104, 145];
+    const darkText = [26, 26, 26], mutedText = [100, 100, 100];
+    const lightBg = [245, 247, 250], white = [255, 255, 255];
+    const green = [22, 101, 52], greenBg = [220, 252, 231];
+    const yellow = [133, 100, 0], yellowBg = [254, 249, 195];
+    const red = [153, 27, 27], redBg = [254, 226, 226];
 
-    // White background
     doc.setFillColor(...white);
     doc.rect(0, 0, W, H, 'F');
-
-    // Teal top bar
     doc.setFillColor(...teal);
     doc.rect(0, 0, W, 3, 'F');
 
-    // Logo
     try {
       doc.addImage('./assets/fortified-logo-print.png', 'PNG', margin, y + 1, 50, 9);
     } catch (e) {
@@ -366,118 +339,118 @@
 
     y += 16;
 
-    // Address
     const address = document.getElementById('address')?.value || 'No address provided';
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(...darkText);
     doc.text(address, margin, y);
     y += 4;
-
     doc.setDrawColor(...tealLight);
     doc.setLineWidth(0.4);
     doc.line(margin, y, W - margin, y);
     y += 5;
 
-    // ===== THREE-COLUMN DATA SUMMARY =====
+    // Three-column summary
     const thirdW = (cw - 8) / 3;
-    const colX   = [margin, margin + thirdW + 4, margin + (thirdW + 4) * 2];
+    const colX = [margin, margin + thirdW + 4, margin + (thirdW + 4) * 2];
 
-    function drawDataBlock(x, title, items, startY) {
+    function drawBlock(x, title, items, startY) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(7);
       doc.setTextColor(...teal);
       doc.text(title.toUpperCase(), x, startY);
-
       let iy = startY + 4;
       items.forEach(item => {
-        if (item.bold) {
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(...teal);
-        } else {
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(...mutedText);
-        }
+        doc.setFont('helvetica', item.bold ? 'bold' : 'normal');
         doc.setFontSize(6.5);
+        const tc = item.bold ? teal : mutedText;
+        doc.setTextColor(tc[0], tc[1], tc[2]);
         doc.text(item.label, x, iy);
         doc.setTextColor(...darkText);
-        doc.text(item.value, x + thirdW - 2, iy, { align: 'right' });
+        doc.text(item.value || '', x + thirdW - 2, iy, { align: 'right' });
         iy += 3.5;
       });
       return iy;
     }
 
-    // Gather live computed values
-    const g = id => document.getElementById(id)?.textContent || '--';
-    const v = id => document.getElementById(id)?.value || '--';
-
     const entryItems = [
-      { label: 'Purchase Price',         value: fmt(getVal('purchasePrice')) },
-      { label: 'Rehab',                  value: fmt(getVal('rehab')) },
-      { label: 'Closing/Addl In Loan',   value: fmt(getVal('closingInLoan')) },
-      { label: 'Total Cost Basis (HML)', value: g('totalCostBasis'), bold: true },
-      { label: 'HML Points %',           value: v('hmlPoints') + '%' },
-      { label: 'HML Rate %',             value: v('hmlRate') + '%' },
-      { label: 'HML LTV %',              value: v('hmlLtv') + '%' },
-      { label: 'Points Paid Up Front',   value: g('pointsUpFront') },
-      { label: 'Hard Money Loan',        value: g('hmlLoan') },
-      { label: 'HML Cash to Close',      value: g('hmlCashToClose') },
-      { label: 'Other Up Front',         value: fmt(getVal('otherUpFront')) },
-      { label: 'Addl Rehab Not In Loan', value: fmt(getVal('addlRehabNotInLoan')) },
-      { label: 'HELOC Amount',           value: fmt(getVal('helocAmount')) },
-      { label: 'HELOC Rate %',           value: v('helocRate') + '%' },
-      { label: 'Left Over HELOC',        value: g('leftOverHeloc') },
-      { label: 'ADJUSTED CASH TO CLOSE', value: g('adjustedCashToClose'), bold: true }
+      { label: 'Purchase Price', value: fmt(getVal('purchasePrice')) },
+      { label: 'Rehab', value: fmt(getVal('rehab')) },
+      { label: 'Total Cost Basis', value: document.getElementById('totalCostBasis')?.textContent },
+      { label: 'HML Loan (' + getVal('hmlLtv') + '% LTV)', value: document.getElementById('hmlLoan')?.textContent },
+      { label: 'Points (' + getVal('hmlPoints') + '%)', value: document.getElementById('pointsUpFront')?.textContent },
+      { label: 'HELOC', value: fmt(getVal('helocAmount')) },
+      { label: 'ADJUSTED CASH TO CLOSE', value: document.getElementById('adjustedCashToClose')?.textContent, bold: true }
     ];
 
-    const holdingItems = [
-      { label: 'HELOC Payment',           value: g('helocPayment') },
-      { label: 'Hard Money Payment',      value: g('hmlPayment') },
-      { label: 'Total Monthly Debt',      value: g('totalMonthlyDebt'), bold: true },
-      { label: 'Taxes (Annual)',          value: fmt(getVal('taxesAnnual')) },
-      { label: 'Insurance (Annual)',      value: fmt(getVal('insuranceAnnual')) },
-      { label: 'Utilities (Monthly)',     value: fmt(getVal('utilitiesMonthly')) },
-      { label: 'Other Cost (Annual)',     value: fmt(getVal('otherCostAnnual')) },
-      { label: 'Other Cost (Monthly)',    value: fmt(getVal('otherCostMonthly')) },
-      { label: 'MONTHLY CARRY COST',      value: g('monthlyCarryCost'), bold: true }
+    const holdItems = [
+      { label: 'HELOC Payment', value: document.getElementById('helocPayment')?.textContent },
+      { label: 'Hard Money Payment', value: document.getElementById('hmlPayment')?.textContent },
+      { label: 'Total Monthly Debt', value: document.getElementById('totalMonthlyDebt')?.textContent },
+      { label: 'Taxes (Annual)', value: fmt(getVal('taxesAnnual')) },
+      { label: 'Insurance (Annual)', value: fmt(getVal('insuranceAnnual')) },
+      { label: 'Utilities (Monthly)', value: fmt(getVal('utilitiesMonthly')) },
+      { label: 'MONTHLY CARRY COST', value: document.getElementById('monthlyCarryCost')?.textContent, bold: true }
     ];
 
     const exitItems = [
-      { label: 'ARV Low',              value: fmt(getVal('arvLow')) },
-      { label: 'ARV High',             value: fmt(getVal('arvHigh')) },
-      { label: 'Broker Fee %',         value: v('brokerFee') + '%' },
-      { label: 'Other Closing Costs %',value: v('otherClosingPct') + '%' },
-      { label: 'TOTAL SELLING COST %', value: g('totalSellingPct'), bold: true }
+      { label: 'ARV Low', value: fmt(getVal('arvLow')) },
+      { label: 'ARV High', value: fmt(getVal('arvHigh')) },
+      { label: 'Broker Fee', value: getVal('brokerFee') + '%' },
+      { label: 'Other Closing Costs', value: getVal('otherClosingPct') + '%' },
+      { label: 'TOTAL SELLING COST', value: document.getElementById('totalSellingPct')?.textContent, bold: true }
     ];
 
-    const e1 = drawDataBlock(colX[0], 'Entry Strategy', entryItems, y);
-    const e2 = drawDataBlock(colX[1], 'Holding Costs',  holdingItems, y);
-    const e3 = drawDataBlock(colX[2], 'Exit Strategy',  exitItems, y);
+    drawBlock(colX[0], 'Entry Strategy', entryItems, y);
+    drawBlock(colX[1], 'Holding Costs', holdItems, y);
+    drawBlock(colX[2], 'Exit Strategy', exitItems, y);
 
-    y = Math.max(e1, e2, e3) + 4;
+    y += Math.max(entryItems.length, holdItems.length) * 3.5 + 8;
 
-    // ===== PROFIT MATRIX TABLE =====
-    const profitTable = document.getElementById('profitTable');
-    if (profitTable && profitTable.rows.length > 1) {
+    // Helper to extract table and render with autoTable
+    function renderTable(tableId, title, startY) {
+      const table = document.getElementById(tableId);
+      if (!table || table.rows.length < 2) return startY;
+
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(...teal);
-      doc.text('PRE-TAX GROSS PROFIT', margin, y);
-      y += 3;
+      doc.text(title.toUpperCase(), margin, startY);
 
-      const { headers: ph, bodyData: pb, cellStyles: ps } = extractTableData(profitTable);
+      const headers = [];
+      table.querySelector('thead tr')?.querySelectorAll('th').forEach(th => headers.push(th.textContent));
+
+      const bodyData = [];
+      const cellStyles = {};
+      table.querySelectorAll('tbody tr').forEach((tr, ri) => {
+        const row = [];
+        tr.querySelectorAll('td').forEach((td, ci) => {
+          row.push(td.textContent);
+          if (td.classList.contains('cond-green')) {
+            if (!cellStyles[ri]) cellStyles[ri] = {};
+            cellStyles[ri][ci] = { fillColor: greenBg, textColor: green };
+          } else if (td.classList.contains('cond-yellow')) {
+            if (!cellStyles[ri]) cellStyles[ri] = {};
+            cellStyles[ri][ci] = { fillColor: yellowBg, textColor: yellow };
+          } else if (td.classList.contains('cond-red')) {
+            if (!cellStyles[ri]) cellStyles[ri] = {};
+            cellStyles[ri][ci] = { fillColor: redBg, textColor: red };
+          }
+        });
+        bodyData.push(row);
+      });
 
       doc.autoTable({
-        head: [ph],
-        body: pb,
-        startY: y,
+        head: [headers],
+        body: bodyData,
+        startY: startY + 3,
         margin: { left: margin, right: margin },
         styles: {
-          fontSize: 7,
-          cellPadding: 1.8,
+          fontSize: 5.5,
+          cellPadding: 1.2,
           textColor: darkText,
           lineColor: [200, 200, 200],
-          lineWidth: 0.2,
+          lineWidth: 0.15,
           font: 'helvetica',
           halign: 'right',
           valign: 'middle'
@@ -486,70 +459,38 @@
           fillColor: teal,
           textColor: white,
           fontStyle: 'bold',
-          fontSize: 7,
+          fontSize: 5.5,
           halign: 'right'
         },
         columnStyles: {
-          0: { halign: 'left', fontStyle: 'bold', textColor: mutedText }
+          0: { halign: 'left', fontStyle: 'bold', cellWidth: 28, textColor: mutedText }
         },
         alternateRowStyles: { fillColor: [250, 250, 252] },
-        didParseCell: makeCellStyler(ps, green, greenBg, yellow, yellowBg, red, redBg)
+        didParseCell: function (data) {
+          if (data.section === 'body' && cellStyles[data.row.index]?.[data.column.index]) {
+            const style = cellStyles[data.row.index][data.column.index];
+            data.cell.styles.fillColor = style.fillColor;
+            data.cell.styles.textColor = style.textColor;
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
       });
 
-      y = doc.lastAutoTable.finalY + 5;
+      return doc.lastAutoTable.finalY + 4;
     }
 
-    // ===== CASH ON CASH TABLE =====
-    const cocTable = document.getElementById('cocTable');
-    if (cocTable && cocTable.rows.length > 1) {
-      // Check if we need a new page
-      if (y > H - 60) {
-        doc.addPage();
-        y = margin;
-      }
+    y = renderTable('profitTable', 'Pre-Tax Gross Profit', y);
+    y = renderTable('summaryTable', 'Summaries', y);
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(...teal);
-      doc.text('CASH ON CASH RETURN', margin, y);
-      y += 3;
-
-      const { headers: ch, bodyData: cb, cellStyles: cs } = extractTableData(cocTable);
-
-      doc.autoTable({
-        head: [ch],
-        body: cb,
-        startY: y,
-        margin: { left: margin, right: margin },
-        styles: {
-          fontSize: 7,
-          cellPadding: 1.8,
-          textColor: darkText,
-          lineColor: [200, 200, 200],
-          lineWidth: 0.2,
-          font: 'helvetica',
-          halign: 'right',
-          valign: 'middle'
-        },
-        headStyles: {
-          fillColor: teal,
-          textColor: white,
-          fontStyle: 'bold',
-          fontSize: 7,
-          halign: 'right'
-        },
-        columnStyles: {
-          0: { halign: 'left', fontStyle: 'bold', textColor: mutedText }
-        },
-        alternateRowStyles: { fillColor: [250, 250, 252] },
-        didParseCell: makeCellStyler(cs, green, greenBg, yellow, yellowBg, red, redBg)
-      });
-
-      y = doc.lastAutoTable.finalY + 5;
+    // Check if CoC table fits on same page
+    if (y > H - 60) {
+      doc.addPage();
+      y = margin + 5;
     }
+    y = renderTable('cocTable', 'Cash on Cash Return', y);
 
-    // ===== FOOTER =====
-    const fy = H - 10;
+    // Footer
+    const fy = (doc.internal.getNumberOfPages() > 1 ? doc.internal.pageSize.getHeight() : H) - 10;
     doc.setDrawColor(...tealLight);
     doc.setLineWidth(0.3);
     doc.line(margin, fy, W - margin, fy);
@@ -561,66 +502,10 @@
     doc.setTextColor(...mutedText);
     doc.text('One North Main Street, Fall River, MA 02720  |  (508) 691-8035', margin + 42, fy + 4);
     doc.setFontSize(5.5);
-    doc.text('This analysis is for informational purposes only. Not financial advice. Consult with qualified professionals before making investment decisions.', margin, fy + 7.5);
+    doc.text('This analysis is for informational purposes only. Not financial advice.', margin, fy + 7.5);
 
-    const addrClean = (document.getElementById('address')?.value || 'flip-analysis')
-      .replace(/[^a-zA-Z0-9]/g, '-').substring(0, 40);
+    const addrClean = (document.getElementById('address')?.value || 'flip-analysis').replace(/[^a-zA-Z0-9]/g, '-').substring(0, 40);
     doc.save(`Fortified-FlipAnalyzer-${addrClean}.pdf`);
-  }
-
-  // Helper: extract table data and conditional cell styles from a DOM table
-  function extractTableData(table) {
-    const headers = [];
-    const headRow = table.querySelector('thead tr');
-    if (headRow) {
-      headRow.querySelectorAll('th').forEach(th => headers.push(th.textContent.trim()));
-    }
-
-    const bodyData = [];
-    const cellStyles = {};
-    table.querySelectorAll('tbody tr').forEach((tr, ri) => {
-      const row = [];
-      tr.querySelectorAll('td').forEach((td, ci) => {
-        row.push(td.textContent.trim());
-        if (td.classList.contains('cond-green')) {
-          if (!cellStyles[ri]) cellStyles[ri] = {};
-          cellStyles[ri][ci] = 'green';
-        } else if (td.classList.contains('cond-yellow')) {
-          if (!cellStyles[ri]) cellStyles[ri] = {};
-          cellStyles[ri][ci] = 'yellow';
-        } else if (td.classList.contains('cond-red')) {
-          if (!cellStyles[ri]) cellStyles[ri] = {};
-          cellStyles[ri][ci] = 'red';
-        }
-      });
-      bodyData.push(row);
-    });
-
-    return { headers, bodyData, cellStyles };
-  }
-
-  // Helper: return didParseCell function with captured color references
-  function makeCellStyler(cellStyles, green, greenBg, yellow, yellowBg, red, redBg) {
-    return function (data) {
-      if (data.section !== 'body') return;
-      const rowStyles = cellStyles[data.row.index];
-      if (!rowStyles) return;
-      const colorKey = rowStyles[data.column.index];
-      if (!colorKey) return;
-      if (colorKey === 'green') {
-        data.cell.styles.fillColor = greenBg;
-        data.cell.styles.textColor = green;
-        data.cell.styles.fontStyle = 'bold';
-      } else if (colorKey === 'yellow') {
-        data.cell.styles.fillColor = yellowBg;
-        data.cell.styles.textColor = yellow;
-        data.cell.styles.fontStyle = 'bold';
-      } else if (colorKey === 'red') {
-        data.cell.styles.fillColor = redBg;
-        data.cell.styles.textColor = red;
-        data.cell.styles.fontStyle = 'bold';
-      }
-    };
   }
 
   // ===== INITIAL CALCULATION =====
