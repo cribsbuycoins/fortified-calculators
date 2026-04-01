@@ -1,11 +1,14 @@
-const CACHE_NAME = 'fortified-calc-v1';
+const CACHE_NAME = 'fortified-calc-v2';
 const ASSETS = [
   './',
   './index.html',
   './buy-and-hold.html',
+  './flip-analyzer.html',
   './base.css',
   './style.css',
   './app.js',
+  './buy-and-hold.js',
+  './flip-analyzer.js',
   './manifest.json'
 ];
 

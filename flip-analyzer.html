@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flip Analyzer — Fortified Realty Group</title>
+  <meta name="description" content="Free Flip Analyzer tool. Calculate pre-tax gross profit and cash-on-cash return across multiple ARVs and project timelines. Fortified Realty Group, One North Main Street, Fall River, MA 02720.">
+  <meta name="theme-color" content="#00344D">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./base.css">
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="./index.html" class="logo-link">
+        <img src="./assets/fortified-logo-white.png" alt="Fortified Realty Group" height="36">
+        <span class="logo-text">Real Estate Calculators</span>
+      </a>
+      <a href="./index.html" class="nav-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        All Tools
+      </a>
+    </div>
+  </header>
+
+  <main class="calc-page" id="calcContent">
+
+    <div class="calc-title-area">
+      <h1>Flip Analyzer</h1>
+      <p>Model your flip from entry to exit. Profit and cash-on-cash matrices update in real-time.</p>
+    </div>
+
+    <div class="calc-address">
+      <label for="address">Property Address</label>
+      <input type="text" id="address" placeholder="123 Main St, Fall River, MA 02720">
+    </div>
+
+    <!-- THREE COLUMN INPUTS -->
+    <div class="calc-sections">
+
+      <!-- ENTRY STRATEGY -->
+      <div class="input-section">
+        <div class="section-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <h2>Entry Strategy</h2>
+        </div>
+        <div class="section-body">
+          <div class="input-row"><label>Acquisition</label><span></span></div>
+          <div class="input-row">
+            <label for="purchasePrice">Purchase Price</label>
+            <input type="text" id="purchasePrice" value="$340,000" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="rehab">Rehab</label>
+            <input type="text" id="rehab" value="$100,000" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="closingInLoan">Closing/Addl Costs In Loan</label>
+            <input type="text" id="closingInLoan" value="$0" inputmode="numeric" class="money-input">
+          </div>
+          <div class="computed-row">
+            <label>Total Cost Basis (HML)</label>
+            <span class="computed-value" id="totalCostBasis">$440,000</span>
+          </div>
+          <hr class="section-divider">
+          <div class="input-row"><label>Hard Money</label><span></span></div>
+          <div class="input-row">
+            <label for="hmlPoints">Points Paid At Close %</label>
+            <input type="text" id="hmlPoints" value="2" inputmode="decimal" class="pct-input">
+          </div>
+          <div class="input-row">
+            <label for="hmlRate">Hard Money Rate %</label>
+            <input type="text" id="hmlRate" value="12" inputmode="decimal" class="pct-input">
+          </div>
+          <div class="input-row">
+            <label for="hmlLtv">Hard Money LTV %</label>
+            <input type="text" id="hmlLtv" value="0" inputmode="decimal" class="pct-input">
+          </div>
+          <div class="computed-row">
+            <label>Points (Paid Up Front)</label>
+            <span class="computed-value" id="pointsUpFront">$0</span>
+          </div>
+          <div class="computed-row">
+            <label>Hard Money Loan</label>
+            <span class="computed-value" id="hmlLoan">$0</span>
+          </div>
+          <div class="computed-row">
+            <label>HML Cash to Close</label>
+            <span class="computed-value" id="hmlCashToClose">$440,000</span>
+          </div>
+          <hr class="section-divider">
+          <div class="input-row">
+            <label for="otherUpFront">Other Up Front Costs</label>
+            <input type="text" id="otherUpFront" value="$2,000" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="addlRehabNotInLoan">Addl Rehab Not In Loan</label>
+            <input type="text" id="addlRehabNotInLoan" value="$0" inputmode="numeric" class="money-input">
+          </div>
+          <hr class="section-divider">
+          <div class="input-row"><label>HELOC</label><span></span></div>
+          <div class="input-row">
+            <label for="helocRate">HELOC Rate %</label>
+            <input type="text" id="helocRate" value="7" inputmode="decimal" class="pct-input">
+          </div>
+          <div class="input-row">
+            <label for="helocAmount">HELOC Amount</label>
+            <input type="text" id="helocAmount" value="$0" inputmode="numeric" class="money-input">
+          </div>
+          <div class="computed-row">
+            <label>Left Over HELOC</label>
+            <span class="computed-value" id="leftOverHeloc">$0</span>
+          </div>
+        </div>
+        <div class="section-total" style="border-top-color: var(--color-accent);">
+          <label>Adjusted Cash to Close</label>
+          <span class="total-value" id="adjustedCashToClose">$442,000</span>
+        </div>
+      </div>
+
+      <!-- HOLDING COSTS -->
+      <div class="input-section">
+        <div class="section-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <h2>Holding Costs</h2>
+        </div>
+        <div class="section-body">
+          <div class="input-row"><label>Monthly Debt Service</label><span></span></div>
+          <div class="computed-row">
+            <label>HELOC Payment</label>
+            <span class="computed-value" id="helocPayment">$0</span>
+          </div>
+          <div class="computed-row">
+            <label>Hard Money Payment</label>
+            <span class="computed-value" id="hmlPayment">$0</span>
+          </div>
+          <div class="computed-row" style="border-top: 2px solid var(--color-accent);">
+            <label style="font-weight:700; color:var(--color-accent);">Total Monthly Debt</label>
+            <span class="computed-value" id="totalMonthlyDebt" style="font-weight:800; color:var(--color-accent);">$0</span>
+          </div>
+          <hr class="section-divider">
+          <div class="input-row">
+            <label for="taxesAnnual">Taxes (Annual)</label>
+            <input type="text" id="taxesAnnual" value="$6,500" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="insuranceAnnual">Insurance (Annual)</label>
+            <input type="text" id="insuranceAnnual" value="$3,000" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="utilitiesMonthly">Utilities (Monthly)</label>
+            <input type="text" id="utilitiesMonthly" value="$200" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="otherCostAnnual">Other Cost (Annual)</label>
+            <input type="text" id="otherCostAnnual" value="$100" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="otherCostMonthly">Other Cost (Monthly)</label>
+            <input type="text" id="otherCostMonthly" value="$0" inputmode="numeric" class="money-input">
+          </div>
+        </div>
+        <div class="section-total">
+          <label>Monthly Carry Cost</label>
+          <span class="total-value" id="monthlyCarryCost">$1,000</span>
+        </div>
+      </div>
+
+      <!-- EXIT STRATEGY / SELLING COSTS -->
+      <div class="input-section">
+        <div class="section-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <h2>Exit Strategy</h2>
+        </div>
+        <div class="section-body">
+          <div class="input-row">
+            <label for="arvLow">ARV Low</label>
+            <input type="text" id="arvLow" value="$550,000" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="arvHigh">ARV High</label>
+            <input type="text" id="arvHigh" value="$600,000" inputmode="numeric" class="money-input">
+          </div>
+          <hr class="section-divider">
+          <div class="input-row"><label>Selling Costs</label><span></span></div>
+          <div class="input-row">
+            <label for="brokerFee">Broker Fee %</label>
+            <input type="text" id="brokerFee" value="5" inputmode="decimal" class="pct-input">
+          </div>
+          <div class="input-row">
+            <label for="otherClosingPct">Other Closing Costs %</label>
+            <input type="text" id="otherClosingPct" value="2" inputmode="decimal" class="pct-input">
+          </div>
+          <div class="computed-row" style="border-top: 2px solid var(--color-accent);">
+            <label style="font-weight:700; color:var(--color-accent);">Total Selling Cost %</label>
+            <span class="computed-value" id="totalSellingPct" style="font-weight:800; color:var(--color-accent);">7.00%</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PROFIT MATRIX -->
+    <section class="range-section" id="profitSection">
+      <h2>Pre-Tax Gross Profit</h2>
+      <p style="font-size:var(--text-sm); color:var(--color-text-muted); margin-bottom:var(--space-4);">Sale Price − Selling Costs − HELOC Payback − HML Balance − Holding Costs − Up Front Cash</p>
+      <div class="range-table-wrap">
+        <table class="range-table" id="profitTable">
+          <thead id="profitHead"></thead>
+          <tbody id="profitBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SUMMARIES -->
+    <section class="range-section" id="summarySection">
+      <h2>Summaries</h2>
+      <div class="range-table-wrap">
+        <table class="range-table" id="summaryTable">
+          <thead id="summaryHead"></thead>
+          <tbody id="summaryBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- CASH ON CASH MATRIX -->
+    <section class="range-section" id="cocSection">
+      <h2>Cash on Cash Return</h2>
+      <div class="range-table-wrap">
+        <table class="range-table" id="cocTable">
+          <thead id="cocHead"></thead>
+          <tbody id="cocBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ACTIONS -->
+    <div class="actions-bar">
+      <button class="btn btn-primary" id="savePdfBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        Save as PDF
+      </button>
+      <button class="btn btn-outline" id="resetBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Reset
+      </button>
+    </div>
+
+  </main>
+
+  <footer class="contact-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="./assets/fortified-logo-white.png" alt="Fortified Realty Group" height="24">
+        <div class="footer-text">
+          <strong>Fortified Realty Group, LLC</strong><br>
+          One North Main Street, Fall River, MA 02720
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="tel:+15086918035" class="footer-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          (508) 691-8035
+        </a>
+        <a href="https://g.page/r/CbFCYN2LnvC7EAE/review" class="footer-link review-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Leave a Review
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+  <script src="./flip-analyzer.js"></script>
+</body>
+</html>
