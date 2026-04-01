@@ -587,7 +587,7 @@
     doc.text('Fortified Realty Group, LLC', margin, fy + 4);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...mutedText);
-    doc.text('Fall River, MA  |  (508) 691-8035', margin + 42, fy + 4);
+    doc.text('One North Main Street, Fall River, MA 02720  |  (508) 691-8035', margin + 42, fy + 4);
     doc.setFontSize(5.5);
     doc.text('This analysis is for informational purposes only. Not financial advice. Consult with qualified professionals before making investment decisions.', margin, fy + 7.5);
 
