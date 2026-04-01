@@ -370,9 +370,9 @@
     doc.setFillColor(...teal);
     doc.rect(0, 0, W, 3, 'F');
 
-    // Logo
+    // Logo — use print version with gray "Realty Group LLC" for white paper
     try {
-      doc.addImage('./assets/fortified-logo-color.png', 'PNG', margin, y + 1, 50, 9);
+      doc.addImage('./assets/fortified-logo-print.png', 'PNG', margin, y + 1, 50, 9);
     } catch (e) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
