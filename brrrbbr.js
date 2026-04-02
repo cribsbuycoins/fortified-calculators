@@ -701,6 +701,19 @@
       );
     }
 
+    // --- Bitcoin Strategic Reserve paragraph (if toggled on) ---
+    var showBtcChecked = document.getElementById('showBtc')?.checked;
+    if (showBtcChecked && bestCashLeftOver > 0) {
+      var btcPriceVal = parseNum(document.getElementById('btcPrice')?.value) || 85000;
+      var btcCanBuy = bestCashLeftOver / btcPriceVal;
+      sentences.push(
+        '<br><br><strong>Bitcoin Strategic Reserve:</strong> With ' + fmt(Math.round(bestCashLeftOver)) +
+        ' in cash-out at refi, you could stack <strong>' + btcCanBuy.toFixed(4) + ' BTC</strong> at ' +
+        fmt(btcPriceVal) + '/coin. That\u2019s tax-free capital from the refi going straight into a hard asset. ' +
+        'Flip it, rent it, refi it, stack sats, repeat.'
+      );
+    }
+
     summaryEl.className = dealClass;
     summaryText.innerHTML = sentences.join(' ');
   }
