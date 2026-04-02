@@ -10,11 +10,13 @@
     nasdaq:  { label: 'Nasdaq Index Fund',  rate: 12.0, risk: 'Medium-High' },
     bitcoin: { label: 'Bitcoin',            rate: 17.0, risk: 'Very High' },
     tesla:   { label: 'Tesla (TSLA)',       rate: 20.0, risk: 'Very High' },
+    cash:    { label: 'Cash',               rate: 0.0,  risk: 'None' },
     custom:  { label: 'Custom',             rate: 4.0,  risk: 'Varies' }
   };
 
   // All savings vehicles for scenario table
   const SCENARIO_VEHICLES = [
+    { name: 'Cash (0%)',           rate: 0.0,  risk: 'None' },
     { name: 'Savings Account',    rate: 4.0,  risk: 'Low' },
     { name: 'S&P 500 Index Fund', rate: 10.0, risk: 'Medium' },
     { name: 'Nasdaq Index Fund',  rate: 12.0, risk: 'Medium-High' },
@@ -126,8 +128,9 @@
 
     // Average monthly savings needed (ignoring growth) as a rough starting guess
     const gap = Math.max(0, targetCash - startBalance);
-    // Simple average savings (ignoring compound growth for the multiplier baseline)
-    const avgSavings = months > 0 ? gap / months : 0;
+    // Average savings needed, but at least what they're already saving
+    const rawAvg = months > 0 ? gap / months : 0;
+    const avgSavings = Math.max(rawAvg, startingSavings);
 
     // Build phase multipliers based on ramp style
     // Aggressive: start high, increase fast (front-loaded)
@@ -136,15 +139,14 @@
     function phaseMultiplier(phaseIdx, total, style) {
       const t = total <= 1 ? 0 : phaseIdx / (total - 1); // 0 to 1
       if (style === 'aggressive') {
-        // Front-loaded: start at 130%, ends at 70% — WAIT, spec says ramp UP
-        // Spec: "start high and increase fast" for aggressive
-        // Re-reading: "front-load. First phase = 60% of avg, ramps to 140% by end"
-        // So aggressive actually starts lower and ramps UP faster
-        return 0.6 + t * 0.8; // 60% -> 140%
+        // Front-loaded: save hard from day 1, ramp up steeply
+        return 1.0 + t * 0.6; // 100% -> 160% of average
       } else if (style === 'moderate') {
+        // Balanced: start a bit below average, smooth ramp
         return 0.7 + t * 0.6; // 70% -> 130%
       } else { // passive
-        return 0.5 + t * 1.0; // 50% -> 150%
+        // Slow start: light early, bigger increases later
+        return 0.4 + t * 1.0; // 40% -> 140%
       }
     }
 
@@ -812,13 +814,13 @@
 
   // ===== RESET =====
   document.getElementById('resetBtn').addEventListener('click', () => {
-    document.getElementById('homePrice').value            = '$400,000';
-    document.getElementById('downPct').value              = '5';
+    document.getElementById('homePrice').value            = '$500,000';
+    document.getElementById('downPct').value              = '3.5';
     document.getElementById('closingPct').value           = '3';
-    document.getElementById('reserveCushion').value       = '$5,000';
+    document.getElementById('reserveCushion').value       = '$10,000';
     document.getElementById('mortgageRate').value         = '6.5';
     document.getElementById('monthsUntilPurchase').value  = '24';
-    document.getElementById('homeAppreciation').value     = '3';
+    document.getElementById('homeAppreciation').value     = '10';
     document.getElementById('currentSavings').value       = '$5,000';
     document.getElementById('currentRent').value          = '$1,500';
     document.getElementById('currentMonthlySavings').value = '$300';
