@@ -596,7 +596,7 @@
     // --- HEADER BAND ---
     rect(0, 0, 0, W, 75, DARK);
     try {
-      doc.addImage('./assets/fortified-logo-white.png', 'PNG', margin, 8, 65, 15);
+      doc.addImage('./assets/fortified-logo-white.png', 'PNG', margin, 10, 120, 27);
     } catch(e) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
@@ -604,11 +604,11 @@
       doc.text('FORTIFIED REALTY GROUP', margin, 18);
     }
     setFont(20, 'bold', WHITE);
-    doc.text('My Path to Homeownership', W / 2, 38, { align: 'center' });
+    doc.text('My Path to Homeownership', W / 2, 48, { align: 'center' });
     setFont(10, 'normal', TEAL);
-    doc.text('A personal savings plan prepared by Fortified Realty Group', W / 2, 52, { align: 'center' });
+    doc.text('A personal savings plan prepared by Fortified Realty Group', W / 2, 60, { align: 'center' });
     setFont(9, 'normal', [176, 212, 230]);
-    doc.text(`Target: ${fmt(homePrice)} home by ${targetDateStr}`, W / 2, 64, { align: 'center' });
+    doc.text(`Target: ${fmt(homePrice)} home by ${targetDateStr}`, W / 2, 70, { align: 'center' });
     y = 90;
 
     // --- GOAL SUMMARY BOX ---
@@ -779,12 +779,12 @@
     const dealSummaryContent = document.getElementById('dealSummaryText')?.textContent;
     if (dealSummaryContent && dealSummaryContent !== 'Enter your numbers above to see a plain English analysis.') {
       if (actionY + 60 > pageBottom) { doc.addPage(); actionY = margin + 10; }
-      actionY += 4;
+      actionY += 10;
       rect(0, boxX, actionY, boxW, 3, TEAL, 0);
-      actionY += 8;
+      actionY += 16;
       setFont(9, 'bold', DARK);
       doc.text('DEAL SUMMARY', boxX, actionY);
-      actionY += 12;
+      actionY += 14;
       setFont(8, 'normal', GRAY);
       const splitSummary = doc.splitTextToSize(dealSummaryContent, boxW - 8);
       doc.text(splitSummary, boxX + 4, actionY);
