@@ -943,3 +943,53 @@ body {
 .calc-card:nth-child(4) { animation-delay: 240ms; }
 .calc-card:nth-child(5) { animation-delay: 320ms; }
 .calc-card:nth-child(6) { animation-delay: 400ms; }
+
+
+/* ===== SECTION VISUAL DIVIDER (first-mortgage & future calculators) ===== */
+
+.section-visual-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-8) 0 var(--space-6);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.section-visual-divider::before,
+.section-visual-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* ===== RAMP CARD (first-mortgage) ===== */
+
+.ramp-card {
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+  border-radius: var(--radius-md);
+}
+
+.ramp-card:hover {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.12);
+}
+
+/* ===== COACHING BAR variant (noi-bar used as single text bar) ===== */
+
+#coachingBar {
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+#coachingBar span {
+  flex: 1;
+}

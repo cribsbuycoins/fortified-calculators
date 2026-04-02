@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Path to Homeownership — Fortified Realty Group</title>
+  <meta name="description" content="Free First-Time Homebuyer Savings Planner. Build your personal savings roadmap to homeownership — from first dollar to closing day. Fortified Realty Group, One North Main Street, Fall River, MA 02720.">
+  <meta name="theme-color" content="#00344D">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./base.css">
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="./index.html" class="logo-link">
+        <img src="./assets/fortified-logo-white.png" alt="Fortified Realty Group" height="36">
+        <span class="logo-text">Real Estate Calculators</span>
+      </a>
+      <a href="./index.html" class="nav-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        All Tools
+      </a>
+    </div>
+  </header>
+
+  <main class="calc-page" id="calcContent">
+
+    <div class="calc-title-area">
+      <h1>My Path to Homeownership</h1>
+      <p>Your personal savings plan to homeownership — from first dollar to closing day.</p>
+    </div>
+
+    <!-- SECTION 1: THREE-COLUMN INPUTS -->
+    <div class="calc-sections">
+
+      <!-- COL 1: YOUR DREAM HOME -->
+      <div class="input-section">
+        <div class="section-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <h2>Your Dream Home</h2>
+        </div>
+        <div class="section-body">
+          <div class="input-row">
+            <label for="homePrice">Target Home Price</label>
+            <input type="text" id="homePrice" value="$400,000" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="downPct">Down Payment (%)</label>
+            <input type="text" id="downPct" value="5" inputmode="decimal" class="pct-input">
+          </div>
+          <div class="computed-row">
+            <label>Down Payment ($)</label>
+            <span class="computed-value" id="downPayment">$20,000</span>
+          </div>
+          <div class="input-row">
+            <label for="closingPct">Closing Costs (%)</label>
+            <input type="text" id="closingPct" value="3" inputmode="decimal" class="pct-input">
+          </div>
+          <div class="computed-row">
+            <label>Closing Costs ($)</label>
+            <span class="computed-value" id="closingDollars">$12,000</span>
+          </div>
+          <div class="input-row">
+            <label for="reserveCushion">Reserve Cushion ($)</label>
+            <input type="text" id="reserveCushion" value="$5,000" inputmode="numeric" class="money-input">
+          </div>
+        </div>
+        <div class="section-total">
+          <label>Total Cash Needed Today</label>
+          <span class="total-value" id="totalCashNeeded">$37,000</span>
+        </div>
+      </div>
+
+      <!-- COL 2: YOUR TIMELINE -->
+      <div class="input-section">
+        <div class="section-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <h2>Your Timeline</h2>
+        </div>
+        <div class="section-body">
+          <div class="input-row">
+            <label for="monthsUntilPurchase">Months Until Purchase</label>
+            <input type="text" id="monthsUntilPurchase" value="24" inputmode="numeric">
+          </div>
+          <div class="input-row">
+            <label for="homeAppreciation">Annual Price Appreciation (%)</label>
+            <input type="text" id="homeAppreciation" value="3" inputmode="decimal" class="pct-input">
+          </div>
+          <hr class="section-divider">
+          <div class="computed-row">
+            <label>Adjusted Home Price</label>
+            <span class="computed-value" id="adjustedHomePrice">—</span>
+          </div>
+        </div>
+        <div class="section-total">
+          <label>Adjusted Cash Needed</label>
+          <span class="total-value" id="adjustedCashNeeded">—</span>
+        </div>
+      </div>
+
+      <!-- COL 3: YOUR SITUATION -->
+      <div class="input-section">
+        <div class="section-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <h2>Your Situation</h2>
+        </div>
+        <div class="section-body">
+          <div class="input-row">
+            <label for="currentSavings">Current Savings ($)</label>
+            <input type="text" id="currentSavings" value="$5,000" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="currentRent">Current Monthly Rent ($)</label>
+            <input type="text" id="currentRent" value="$1,500" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="futurePayment">Expected Future Payment ($/mo)</label>
+            <input type="text" id="futurePayment" value="$2,800" inputmode="numeric" class="money-input">
+          </div>
+          <div class="computed-row">
+            <label>Practice-Payment Gap</label>
+            <span class="computed-value" id="practiceGap">$1,300/mo</span>
+          </div>
+          <hr class="section-divider">
+          <div class="input-row">
+            <label for="currentMonthlySavings">Current Monthly Savings ($)</label>
+            <input type="text" id="currentMonthlySavings" value="$300" inputmode="numeric" class="money-input">
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.calc-sections -->
+
+    <!-- BEHAVIORAL COACHING BAR -->
+    <div class="noi-bar" id="coachingBar">
+      <span id="coachingText">Your future housing payment is $2,800 and your current rent is $1,500. That means your practice-payment gap is $1,300/month. Learning to save that difference is a strong signal you are ready for this payment.</span>
+    </div>
+
+    <!-- VISUAL DIVIDER -->
+    <div class="section-visual-divider">
+      <span>Savings Strategy</span>
+    </div>
+
+    <!-- SECTION 2: SAVINGS STYLE -->
+    <section class="range-section" id="savingsStyleSection">
+
+      <h2>Ramp-Up Style</h2>
+      <p style="font-size:var(--text-sm); color:var(--color-text-muted); margin-bottom:var(--space-5);">How do you want to increase your savings over time?</p>
+
+      <div style="display:flex; gap:var(--space-4); flex-wrap:wrap; margin-bottom:var(--space-6);">
+        <label class="calc-card ramp-card" id="card-aggressive" style="flex:1; min-width:200px; padding:var(--space-5); cursor:pointer; border:2px solid var(--color-border);">
+          <input type="radio" name="rampStyle" value="aggressive" style="display:none;">
+          <h3 style="font-family:var(--font-display); font-size:var(--text-base); color:var(--color-text); margin-bottom:var(--space-2);">Aggressive</h3>
+          <p style="font-size:var(--text-xs); color:var(--color-text-muted);">Ramp up fast. Bigger increases sooner. Best if you can stretch hard.</p>
+        </label>
+        <label class="calc-card ramp-card" id="card-moderate" style="flex:1; min-width:200px; padding:var(--space-5); cursor:pointer; border:2px solid var(--color-accent);">
+          <input type="radio" name="rampStyle" value="moderate" checked style="display:none;">
+          <h3 style="font-family:var(--font-display); font-size:var(--text-base); color:var(--color-text); margin-bottom:var(--space-2);">Moderate</h3>
+          <p style="font-size:var(--text-xs); color:var(--color-text-muted);">Smooth and steady. Balanced increases over time.</p>
+        </label>
+        <label class="calc-card ramp-card" id="card-passive" style="flex:1; min-width:200px; padding:var(--space-5); cursor:pointer; border:2px solid var(--color-border);">
+          <input type="radio" name="rampStyle" value="passive" style="display:none;">
+          <h3 style="font-family:var(--font-display); font-size:var(--text-base); color:var(--color-text); margin-bottom:var(--space-2);">Passive</h3>
+          <p style="font-size:var(--text-xs); color:var(--color-text-muted);">Slow start. Lighter increases early, catches up later.</p>
+        </label>
+      </div>
+
+      <div class="range-inputs">
+        <div class="range-input-group">
+          <label for="savingsVehicle">Where Will You Save?</label>
+          <select id="savingsVehicle" style="width:200px; padding:var(--space-2) var(--space-3); background:var(--color-input-bg); border:1px solid var(--color-input-border); border-radius:var(--radius-sm); color:var(--color-input-text); font-size:var(--text-sm);">
+            <option value="hysa" selected>High-Yield Savings</option>
+            <option value="moneymarket">Money Market</option>
+            <option value="sp500">S&amp;P 500 Index Fund</option>
+            <option value="nasdaq">Nasdaq</option>
+            <option value="bitcoin">Bitcoin (High Risk)</option>
+            <option value="cash">Cash / Checking</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="range-input-group">
+          <label for="expectedReturn">Expected Annual Return (%)</label>
+          <input type="text" id="expectedReturn" value="4.5" inputmode="decimal" class="pct-input">
+        </div>
+      </div>
+
+    </section>
+
+    <!-- VISUAL DIVIDER -->
+    <div class="section-visual-divider">
+      <span>Your Plan</span>
+    </div>
+
+    <!-- SECTION 3: VERDICT -->
+    <section class="deal-summary" id="verdictSection">
+      <h3 id="verdictTitle">YOUR HOMEOWNERSHIP PLAN</h3>
+      <p id="verdictText">Enter your details above to see your personalized savings plan.</p>
+    </section>
+
+    <!-- RESULTS GRID -->
+    <section class="results-section" id="resultsSection">
+      <div class="results-header">
+        <h2>Plan Summary</h2>
+      </div>
+      <div class="results-grid">
+        <div class="result-card">
+          <div class="result-label">Cash Needed</div>
+          <div class="result-value" id="resultCashNeeded">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">Monthly Target</div>
+          <div class="result-value" id="resultMonthlyTarget">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">Projected Balance</div>
+          <div class="result-value" id="resultProjectedBalance">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">Verdict</div>
+          <div class="result-value" id="resultVerdict">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RAMP-UP SCHEDULE TABLE -->
+    <section class="range-section" id="scheduleSection">
+      <h2>Your Savings Schedule</h2>
+      <div class="range-table-wrap">
+        <table class="range-table" id="scheduleTable">
+          <thead id="scheduleHead"></thead>
+          <tbody id="scheduleBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SCENARIO COMPARISON TABLE -->
+    <section class="range-section" id="scenarioSection">
+      <h2>What If You Saved Differently?</h2>
+      <div class="range-table-wrap">
+        <table class="range-table" id="scenarioTable">
+          <thead id="scenarioHead"></thead>
+          <tbody id="scenarioBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- DEAL SUMMARY -->
+    <section class="deal-summary" id="dealSummary">
+      <h3>Deal Summary</h3>
+      <p id="dealSummaryText">Enter your numbers above to see your personalized plan.</p>
+    </section>
+
+    <!-- ACTIONS -->
+    <div class="actions-bar">
+      <button class="btn btn-primary" id="savePdfBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        Save as PDF
+      </button>
+      <button class="btn btn-outline" id="resetBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Reset
+      </button>
+    </div>
+
+  </main>
+
+  <footer class="contact-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="./assets/fortified-logo-white.png" alt="Fortified Realty Group" height="24">
+        <div class="footer-text">
+          <strong>Fortified Realty Group, LLC</strong><br>
+          One North Main Street, Fall River, MA 02720
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="tel:+15086918035" class="footer-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          (508) 691-8035
+        </a>
+        <a href="https://fortifiedrealty.net" class="footer-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          fortifiedrealty.net
+        </a>
+        <a href="https://g.page/r/CbFCYN2LnvC7EAE/review" class="footer-link review-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Leave a Review
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+  <script src="./first-mortgage.js"></script>
+</body>
+</html>

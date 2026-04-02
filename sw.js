@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fortified-calc-v4';
+const CACHE_NAME = 'fortified-calc-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,8 @@ const ASSETS = [
   './brrrbbr.js',
   './refi-breakeven.html',
   './refi-breakeven.js',
+  './first-mortgage.html',
+  './first-mortgage.js',
   './manifest.json'
 ];
 
