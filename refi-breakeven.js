@@ -25,7 +25,6 @@
     return yrs + ' yr ' + mos + ' mo';
   }
 
-  // Format months with explicit "X years, Y months" for full clarity
   function fmtMonthsLong(m) {
     if (!isFinite(m) || m <= 0) return 'Never';
     const yrs = Math.floor(m / 12);
@@ -52,14 +51,33 @@
     el.addEventListener('blur', () => formatMoneyInput(el));
   });
 
+  // ===== NEW LOAN AMOUNT AUTO-FILL TRACKING =====
+  // Track whether user has manually changed newLoanAmount
+  let newLoanAmountUserEdited = false;
+
+  const newLoanAmountEl = document.getElementById('newLoanAmount');
+  if (newLoanAmountEl) {
+    newLoanAmountEl.addEventListener('input', () => {
+      newLoanAmountUserEdited = true;
+    });
+  }
+
+  // On currentBalance blur: auto-fill newLoanAmount if user hasn't manually changed it
+  const currentBalanceEl = document.getElementById('currentBalance');
+  if (currentBalanceEl) {
+    currentBalanceEl.addEventListener('blur', () => {
+      if (!newLoanAmountUserEdited && newLoanAmountEl) {
+        const bal = parseNum(currentBalanceEl.value);
+        newLoanAmountEl.value = fmt(bal);
+        calculate();
+      }
+    });
+  }
+
   // ===== AMORTIZATION HELPERS =====
 
   /**
    * Calculate monthly P+I payment using standard amortization formula.
-   * @param {number} principal - Loan principal
-   * @param {number} annualRate - Annual interest rate as a percentage (e.g., 6.5)
-   * @param {number} termMonths - Loan term in months
-   * @returns {number} Monthly P+I payment
    */
   function calcMonthlyPI(principal, annualRate, termMonths) {
     if (principal <= 0 || termMonths <= 0) return 0;
@@ -70,10 +88,6 @@
 
   /**
    * Build a full amortization schedule and return monthly snapshots.
-   * @param {number} principal
-   * @param {number} annualRate
-   * @param {number} termMonths
-   * @returns {Array} Array of {month, payment, interest, principal, balance, cumInterest, cumPayment}
    */
   function buildAmortization(principal, annualRate, termMonths) {
     const r = annualRate / 100 / 12;
@@ -103,148 +117,31 @@
     return schedule;
   }
 
-  // ===== MAIN CALCULATION =====
-  let lastCalc = null; // cache for PDF use
-
-  function calculate() {
-    // --- Read inputs ---
-    const currentBalance = parseNum(document.getElementById('currentBalance')?.value);
-    const currentRate = parseNum(document.getElementById('currentRate')?.value);
-    const remainingTerm = Math.round(parseNum(document.getElementById('remainingTerm')?.value));
-    const currentPMI = parseNum(document.getElementById('currentPMI')?.value);
-
-    const newRate = parseNum(document.getElementById('newRate')?.value);
-    const newTerm = Math.round(parseNum(document.getElementById('newTerm')?.value));
-    const newPMI = parseNum(document.getElementById('newPMI')?.value);
-
-    const closingCosts = parseNum(document.getElementById('closingCosts')?.value);
-    const financeClosing = document.getElementById('financeClosing')?.checked;
-    const holdingYears = parseNum(document.getElementById('holdingYears')?.value);
-    const holdingMonths = Math.round(holdingYears * 12);
-
-    // --- Guard ---
-    const valid = currentBalance > 0 && currentRate > 0 && remainingTerm > 0
-                  && newRate > 0 && newTerm > 0;
-
-    // --- Current loan P+I ---
-    const currentPI = calcMonthlyPI(currentBalance, currentRate, remainingTerm);
-    const currentTotalPayment = currentPI + currentPMI;
-
-    // --- New loan principal ---
-    const newLoanPrincipal = financeClosing ? currentBalance + closingCosts : currentBalance;
-    const upfrontClosingCost = financeClosing ? 0 : closingCosts;
-
-    // --- New loan P+I ---
-    const newPI = calcMonthlyPI(newLoanPrincipal, newRate, newTerm);
-    const newTotalPayment = newPI + newPMI;
-
-    // --- Monthly savings ---
-    const monthlySavings = currentTotalPayment - newTotalPayment;
-
-    // --- Standard break-even ---
-    // If financed, the "cost" for standard BE is the extra amount added to loan
-    const standardBECost = financeClosing ? closingCosts : closingCosts;
-    const standardBEMonths = monthlySavings > 0 ? standardBECost / monthlySavings : Infinity;
-
-    // --- Update computed displays ---
-    setText('currentPIComputed', valid ? fmt(currentPI) : '—');
-    setText('currentTotalPayment', valid ? fmt(currentTotalPayment) : '—');
-    setText('newPIComputed', valid ? fmt(newPI) : '—');
-    setText('newLoanAmount', valid ? fmt(newLoanPrincipal) : '—');
-    setText('newTotalPayment', valid ? fmt(newTotalPayment) : '—');
-    setText('monthlySavings', valid ? fmt(monthlySavings) : '—');
-    setText('standardBreakEven', valid ? fmtMonths(standardBEMonths) : '—');
-
-    if (!valid) {
-      resetResults();
-      return;
-    }
-
-    // --- Build amortization paths ---
-    const pathA = buildAmortization(currentBalance, currentRate, remainingTerm);
-    const pathB = buildAmortization(newLoanPrincipal, newRate, newTerm);
-
-    // --- True Break-Even ---
-    // At month N:
-    //   Path A total economic cost = cumPayment_A + remaining_balance_A
-    //   Path B total economic cost = cumPayment_B + remaining_balance_B + upfront_closing_cost
-    //
-    // True break-even = first month where Path B total econ cost <= Path A total econ cost
-    let trueBreakEvenMonth = Infinity;
-    const maxMonths = Math.max(remainingTerm, newTerm);
-
-    for (let m = 1; m <= maxMonths; m++) {
-      const snA = getSnapshot(pathA, remainingTerm, m);
-      const snB = getSnapshot(pathB, newTerm, m);
-
-      // Add upfront PMI monthly contributions too (beyond the P+I schedule)
-      const cumPMI_A = currentPMI * m;
-      const cumPMI_B = newPMI * m;
-
-      const econA = snA.cumPayment + snA.balance + cumPMI_A;
-      const econB = snB.cumPayment + snB.balance + upfrontClosingCost + cumPMI_B;
-
-      if (econB <= econA) {
-        trueBreakEvenMonth = m;
-        break;
-      }
-    }
-
-    // Net savings at holding period
-    // = (econA at hold) - (econB at hold)
-    const snA_hold = getSnapshot(pathA, remainingTerm, holdingMonths);
-    const snB_hold = getSnapshot(pathB, newTerm, holdingMonths);
-    const cumPMI_A_hold = currentPMI * holdingMonths;
-    const cumPMI_B_hold = newPMI * holdingMonths;
-    const econA_hold = snA_hold.cumPayment + snA_hold.balance + cumPMI_A_hold;
-    const econB_hold = snB_hold.cumPayment + snB_hold.balance + upfrontClosingCost + cumPMI_B_hold;
-    const netSavings = econA_hold - econB_hold;
-
-    // --- Update result cards ---
-    const savingsClass = monthlySavings >= 0 ? 'positive' : 'negative';
-    setValueWithClass('resultMonthlySavings', fmt(monthlySavings), savingsClass);
-    setValueWithClass('resultStandardBE', fmtMonths(standardBEMonths), '');
-    setValueWithClass('resultTrueBreakEven', fmtMonths(trueBreakEvenMonth), '');
-    const netClass = netSavings > 0 ? 'positive' : netSavings < 0 ? 'negative' : '';
-    setValueWithClass('resultNetSavings', fmt(netSavings), netClass);
-
-    // --- Verdict ---
-    buildVerdict(monthlySavings, standardBEMonths, trueBreakEvenMonth, holdingMonths, netSavings);
-
-    // --- Explanation text ---
-    buildExplanation(
-      currentBalance, currentRate, remainingTerm, currentPI, currentPMI,
-      newLoanPrincipal, newRate, newTerm, newPI, newPMI,
-      closingCosts, financeClosing, upfrontClosingCost,
-      monthlySavings, standardBEMonths, trueBreakEvenMonth,
-      pathA, pathB
-    );
-
-    // --- Milestone table ---
-    buildMilestoneTable(pathA, pathB, remainingTerm, newTerm, currentPMI, newPMI, upfrontClosingCost);
-
-    // --- Deal summary (for PDF) ---
-    buildDealSummary(monthlySavings, trueBreakEvenMonth, holdingMonths, netSavings);
-
-    // Cache for PDF
-    lastCalc = {
-      currentBalance, currentRate, remainingTerm, currentPI, currentPMI, currentTotalPayment,
-      newLoanPrincipal, newRate, newTerm, newPI, newPMI, newTotalPayment,
-      closingCosts, financeClosing, upfrontClosingCost, holdingYears, holdingMonths,
-      monthlySavings, standardBEMonths, trueBreakEvenMonth, netSavings
-    };
-  }
-
   // Returns the snapshot at month m (capped if loan is paid off)
   function getSnapshot(schedule, term, m) {
-    if (m <= 0) return { cumPayment: 0, balance: schedule[0] ? schedule[0].balance + schedule[0].principal : 0, cumInterest: 0 };
+    if (m <= 0) {
+      return {
+        cumPayment: 0,
+        balance: schedule[0] ? schedule[0].balance + schedule[0].principal : 0,
+        cumInterest: 0,
+        interest: schedule[0] ? schedule[0].interest : 0,
+        principal: schedule[0] ? schedule[0].principal : 0
+      };
+    }
     if (m >= term) {
       const last = schedule[schedule.length - 1];
-      return { cumPayment: last.cumPayment, balance: 0, cumInterest: last.cumInterest };
+      return {
+        cumPayment: last.cumPayment,
+        balance: 0,
+        cumInterest: last.cumInterest,
+        interest: 0,
+        principal: 0
+      };
     }
     return schedule[m - 1];
   }
 
+  // ===== UTILITY DOM HELPERS =====
   function setText(id, val) {
     const el = document.getElementById(id);
     if (el) el.textContent = val;
@@ -274,7 +171,155 @@
     lastCalc = null;
   }
 
-  function buildVerdict(monthlySavings, standardBE, trueBE, holdingMonths, netSavings) {
+  // ===== MAIN CALCULATION =====
+  let lastCalc = null; // cache for PDF use
+
+  function calculate() {
+    // --- Read inputs ---
+    const homeValue      = parseNum(document.getElementById('homeValue')?.value);
+    const currentBalance = parseNum(document.getElementById('currentBalance')?.value);
+    const currentRate    = parseNum(document.getElementById('currentRate')?.value);
+    const remainingTerm  = Math.round(parseNum(document.getElementById('remainingTerm')?.value));
+    const currentPMI     = parseNum(document.getElementById('currentPMI')?.value);
+
+    const newRate        = parseNum(document.getElementById('newRate')?.value);
+    const newTerm        = Math.round(parseNum(document.getElementById('newTerm')?.value));
+    const newPMI         = parseNum(document.getElementById('newPMI')?.value);
+    const newLoanAmount  = parseNum(document.getElementById('newLoanAmount')?.value);
+
+    const closingCosts   = parseNum(document.getElementById('closingCosts')?.value);
+    const financeClosing = document.getElementById('financeClosing')?.checked;
+    const holdingYears   = parseNum(document.getElementById('holdingYears')?.value);
+    const holdingMonths  = Math.round(holdingYears * 12);
+
+    // --- Computed values ---
+    const currentEquity = homeValue > 0 && currentBalance > 0 ? homeValue - currentBalance : 0;
+    const cashOutAtClosing = Math.max(0, newLoanAmount - currentBalance);
+    const newEquity = homeValue > 0 && newLoanAmount > 0 ? homeValue - newLoanAmount : 0;
+
+    // Update computed display fields
+    if (homeValue > 0 && currentBalance >= 0) {
+      setText('currentEquity', fmt(currentEquity));
+    }
+    if (homeValue > 0 && newLoanAmount >= 0) {
+      setText('cashOutAtClosing', fmt(cashOutAtClosing));
+      setText('newEquity', fmt(newEquity));
+    }
+
+    // --- Guard ---
+    const valid = currentBalance > 0 && currentRate > 0 && remainingTerm > 0
+                  && newRate > 0 && newTerm > 0 && newLoanAmount > 0;
+
+    // --- Current loan P+I ---
+    const currentPI = calcMonthlyPI(currentBalance, currentRate, remainingTerm);
+    const currentTotalPayment = currentPI + currentPMI;
+
+    // --- New loan principal (what actually gets borrowed) ---
+    // If financing closing costs, they're added on top of newLoanAmount
+    const actualRefiLoan = financeClosing ? newLoanAmount + closingCosts : newLoanAmount;
+    const upfrontClosingCost = financeClosing ? 0 : closingCosts;
+
+    // --- New loan P+I ---
+    const newPI = calcMonthlyPI(actualRefiLoan, newRate, newTerm);
+    const newTotalPayment = newPI + newPMI;
+
+    // --- Monthly savings (based on total payments) ---
+    const monthlySavings = currentTotalPayment - newTotalPayment;
+
+    // --- Standard break-even ---
+    const standardBEMonths = monthlySavings > 0 ? closingCosts / monthlySavings : Infinity;
+
+    // --- Update computed displays ---
+    setText('currentPIComputed', valid ? fmt(currentPI) : '—');
+    setText('currentTotalPayment', valid ? fmt(currentTotalPayment) : '—');
+    setText('newPIComputed', valid ? fmt(newPI) : '—');
+    setText('newTotalPayment', valid ? fmt(newTotalPayment) : '—');
+    setText('monthlySavings', valid ? fmt(monthlySavings) : '—');
+    setText('standardBreakEven', valid ? fmtMonths(standardBEMonths) : '—');
+
+    if (!valid) {
+      resetResults();
+      return;
+    }
+
+    // --- Build amortization paths ---
+    const pathA = buildAmortization(currentBalance, currentRate, remainingTerm);
+    const pathB = buildAmortization(actualRefiLoan, newRate, newTerm);
+
+    // --- True Break-Even ---
+    // Path A total economic cost = cumPayment_A + remaining_balance_A + cumPMI_A
+    // Path B total economic cost = cumPayment_B + remaining_balance_B + upfront_closing_cost + cumPMI_B
+    // Note: cashOut is value received, so it offsets Path B cost
+    let trueBreakEvenMonth = Infinity;
+    const maxMonths = Math.max(remainingTerm, newTerm);
+
+    for (let m = 1; m <= maxMonths; m++) {
+      const snA = getSnapshot(pathA, remainingTerm, m);
+      const snB = getSnapshot(pathB, newTerm, m);
+
+      const cumPMI_A = currentPMI * m;
+      const cumPMI_B = newPMI * m;
+
+      const econA = snA.cumPayment + snA.balance + cumPMI_A;
+      // cashOut reduces the net cost of the refi (it's money in your pocket)
+      const econB = snB.cumPayment + snB.balance + upfrontClosingCost + cumPMI_B - cashOutAtClosing;
+
+      if (econB <= econA) {
+        trueBreakEvenMonth = m;
+        break;
+      }
+    }
+
+    // Net savings at holding period
+    const snA_hold = getSnapshot(pathA, remainingTerm, holdingMonths);
+    const snB_hold = getSnapshot(pathB, newTerm, holdingMonths);
+    const cumPMI_A_hold = currentPMI * holdingMonths;
+    const cumPMI_B_hold = newPMI * holdingMonths;
+    const econA_hold = snA_hold.cumPayment + snA_hold.balance + cumPMI_A_hold;
+    const econB_hold = snB_hold.cumPayment + snB_hold.balance + upfrontClosingCost + cumPMI_B_hold - cashOutAtClosing;
+    const netSavings = econA_hold - econB_hold;
+
+    // --- Update result cards ---
+    const savingsClass = monthlySavings >= 0 ? 'positive' : 'negative';
+    setValueWithClass('resultMonthlySavings', fmt(monthlySavings), savingsClass);
+    setValueWithClass('resultStandardBE', fmtMonths(standardBEMonths), '');
+    setValueWithClass('resultTrueBreakEven', fmtMonths(trueBreakEvenMonth), '');
+    const netClass = netSavings > 0 ? 'positive' : netSavings < 0 ? 'negative' : '';
+    setValueWithClass('resultNetSavings', fmt(netSavings), netClass);
+
+    // --- Verdict ---
+    buildVerdict(monthlySavings, standardBEMonths, trueBreakEvenMonth, holdingMonths, netSavings, cashOutAtClosing, newTerm);
+
+    // --- Explanation text ---
+    buildExplanation(
+      currentBalance, currentRate, remainingTerm, currentPI, currentPMI,
+      actualRefiLoan, newRate, newTerm, newPI, newPMI,
+      closingCosts, financeClosing, upfrontClosingCost, cashOutAtClosing,
+      monthlySavings, standardBEMonths, trueBreakEvenMonth,
+      pathA, pathB
+    );
+
+    // --- Milestone table ---
+    buildMilestoneTable(pathA, pathB, remainingTerm, newTerm, currentPMI, newPMI, upfrontClosingCost, cashOutAtClosing);
+
+    // --- Deal summary (for PDF) ---
+    buildDealSummary(monthlySavings, trueBreakEvenMonth, holdingMonths, netSavings, cashOutAtClosing);
+
+    // Cache for PDF
+    lastCalc = {
+      homeValue, currentBalance, currentEquity,
+      currentRate, remainingTerm, currentPI, currentPMI, currentTotalPayment,
+      newLoanAmount, actualRefiLoan, cashOutAtClosing, newEquity,
+      newRate, newTerm, newPI, newPMI, newTotalPayment,
+      closingCosts, financeClosing, upfrontClosingCost,
+      holdingYears, holdingMonths,
+      monthlySavings, standardBEMonths, trueBreakEvenMonth, netSavings,
+      pathA, pathB
+    };
+  }
+
+  // ===== VERDICT =====
+  function buildVerdict(monthlySavings, standardBE, trueBE, holdingMonths, netSavings, cashOut, newTerm) {
     const vs = document.getElementById('verdictSection');
     const vt = document.getElementById('verdictTitle');
     const vp = document.getElementById('verdictText');
@@ -284,29 +329,30 @@
     let title = 'THE VERDICT';
     let text = '';
 
+    const cashOutNote = cashOut > 0 ? ` Plus you're walking away with ${fmt(cashOut)} in cash at closing.` : '';
+
     if (monthlySavings < 0) {
-      // New payment is HIGHER
       cls += ' negative';
       title = 'PAYMENT GOES UP';
-      text = `Your new payment would be ${fmt(Math.abs(monthlySavings))}/month MORE than your current payment. While your payment is higher, this scenario doesn't save money monthly. The standard break-even doesn't apply here. Consider why you're refinancing — if it's to pay off faster, the shorter amortization may still make sense.`;
+      text = `Your new payment would be ${fmt(Math.abs(monthlySavings))}/month MORE than your current payment. While your payment is higher, this scenario doesn't save money monthly. The standard break-even doesn't apply here. Consider why you're refinancing — if it's to pay off faster or access equity, the tradeoff may still make sense.${cashOutNote}`;
     } else if (!isFinite(trueBE)) {
       cls += ' negative';
       title = 'BREAK-EVEN NOT REACHED';
-      text = `Even over the full life of both loans, the refinance doesn't fully pay for itself on a true economic basis. The standard break-even of ${fmtMonthsLong(standardBE)} only counts payment savings — but resetting to a longer amortization means more total interest. You may still want to refinance for cash flow reasons, but the math doesn't favor it long-term.`;
+      text = `Even over the full life of both loans, the refinance doesn't fully pay for itself on a true economic basis. The standard break-even of ${fmtMonthsLong(standardBE)} only counts payment savings — but resetting to a longer amortization means more total interest. You may still want to refinance for cash flow reasons, but the math doesn't favor it long-term.${cashOutNote}`;
     } else if (trueBE <= 12) {
       cls += ' positive';
       title = 'QUICK WIN';
-      text = `You'll reach the true break-even in just ${fmtMonthsLong(trueBE)} — under a year. This is an excellent refinance. Your standard break-even is ${fmtMonthsLong(standardBE)}, but even accounting for the amortization reset, you'll be ahead quickly. At your ${Math.round(holdingMonths / 12)}-year holding period, you'll be ahead by ${fmt(netSavings)}.`;
+      text = `You'll reach the true break-even in just ${fmtMonthsLong(trueBE)} — under a year. This is an excellent refinance. Your standard break-even is ${fmtMonthsLong(standardBE)}, but even accounting for the amortization reset, you'll be ahead quickly.${cashOutNote} Net savings at hold period: ${fmt(netSavings)}.`;
     } else if (holdingMonths > trueBE) {
       cls += ' positive';
       title = 'THIS REFI MAKES SENSE';
-      text = `Your true break-even is ${fmtMonthsLong(trueBE)}. You plan to stay ${Math.round(holdingMonths / 12)} years, so you'll be past break-even. The standard break-even of ${fmtMonthsLong(standardBE)} doesn't capture the full picture — resetting to a ${Math.round(document.getElementById('newTerm')?.value / 12 || 30)}-year loan shifts more of your early payments to interest. When you account for that, your true break-even takes longer. Still, you'll be ahead by ${fmt(netSavings)} at your expected hold period.`;
+      text = `This refi makes sense — you'll break even in ${fmtMonthsLong(trueBE)}, which is well within your ${Math.round(holdingMonths / 12)}-year holding period.${cashOutNote} Net savings at hold period: ${fmt(netSavings)}.`;
     } else {
       cls += ' negative';
       const yearsNeeded = Math.ceil(trueBE / 12 * 10) / 10;
       const yearsPlanning = Math.round(holdingMonths / 12 * 10) / 10;
       title = "THIS REFI PROBABLY ISN'T WORTH IT";
-      text = `Your true break-even is ${fmtMonthsLong(trueBE)} — but you plan to stay only ${Math.round(holdingMonths / 12)} years. You'd need to stay ${yearsNeeded} years to truly break even, but you plan to stay ${yearsPlanning} years. If you sold at your expected hold date, you'd be ${fmt(Math.abs(netSavings))} worse off after the refi than if you'd kept your current loan. The standard break-even of ${fmtMonthsLong(standardBE)} looks more appealing but misses the amortization reset cost.`;
+      text = `Your true break-even is ${fmtMonthsLong(trueBE)} — but you plan to stay only ${Math.round(holdingMonths / 12)} years. You'd need to stay ${yearsNeeded} years to truly break even, but you plan to stay ${yearsPlanning} years. If you sold at your expected hold date, you'd be ${fmt(Math.abs(netSavings))} worse off after the refi than if you'd kept your current loan. The standard break-even of ${fmtMonthsLong(standardBE)} looks more appealing but misses the amortization reset cost.${cashOutNote}`;
     }
 
     vs.className = cls;
@@ -314,10 +360,11 @@
     vp.textContent = text;
   }
 
+  // ===== EXPLANATION TEXT =====
   function buildExplanation(
     curBal, curRate, curTerm, curPI, curPMI,
     newBal, newRate, newTerm, newPI, newPMI,
-    closingCosts, financeClosing, upfrontCost,
+    closingCosts, financeClosing, upfrontCost, cashOut,
     monthlySavings, standardBE, trueBE,
     pathA, pathB
   ) {
@@ -326,28 +373,35 @@
 
     if (pathA.length === 0 || pathB.length === 0) { el.textContent = '—'; return; }
 
-    const m1A = pathA[0]; // Month 1 of current loan
-    const m1B = pathB[0]; // Month 1 of new loan
-    const interestDiffM1 = m1B.interest - m1A.interest;
-    const interestDiffSignStr = interestDiffM1 > 0 ? 'more' : 'less';
+    // Month 1 breakdown for both loans
+    const m1A = pathA[0];
+    const m1B = pathB[0];
 
-    const financeNote = financeClosing
-      ? `Because you're rolling the $${closingCosts.toLocaleString()} closing costs into the loan, your new loan is ${fmt(newBal)} — slightly larger than your current balance.`
-      : `You're paying the $${closingCosts.toLocaleString()} closing costs upfront out of pocket.`;
+    // Interest difference (new vs current)
+    const interestDiff = m1B.interest - m1A.interest;
+    const principalDiff = m1A.principal - m1B.principal; // how much less equity you're building
+
+    const paymentChange = fmt(Math.abs(monthlySavings));
+    const paymentDir = monthlySavings >= 0 ? 'drops by' : 'increases by';
+
+    const newTermYears = Math.round(newTerm / 12);
+    const cashOutPart = cashOut > 0 ? ` and the ${fmt(cashOut)} cash you pulled out` : '';
 
     const trueVsStd = isFinite(trueBE)
-      ? `The standard break-even is ${fmtMonthsLong(standardBE)} (just dividing closing costs by monthly savings). But the true break-even is ${fmtMonthsLong(trueBE)} — ${trueBE > standardBE ? (fmtMonthsLong(trueBE - standardBE) + ' longer') : 'about the same'} — because you have to "pay back" the interest disadvantage of starting a fresh amortization.`
-      : `The standard break-even is ${fmtMonthsLong(standardBE)}, but the true economic break-even is never reached within the loan lifetimes modeled, because the amortization reset costs outweigh the payment savings.`;
+      ? `${fmtMonthsLong(trueBE)} — ${isFinite(standardBE) && trueBE > standardBE ? fmtMonthsLong(trueBE - standardBE) + ' later than the standard calculation suggests' : 'about the same as the standard calculation'}`
+      : 'not reached within either loan\'s lifetime';
 
     el.textContent =
-      `Your payment drops by ${fmt(monthlySavings)}/month. ` +
-      `But because you're resetting to a fresh ${Math.round(newTerm / 12)}-year loan, a bigger chunk of your early payments goes to interest instead of principal. ` +
-      `In month 1, you'd pay ${fmt(m1B.interest)} in interest on the new loan vs. ${fmt(m1A.interest)} on your current loan — that's ${fmt(Math.abs(interestDiffM1))} ${interestDiffSignStr} in interest even though your payment is ${monthlySavings >= 0 ? 'lower' : 'higher'}. ` +
-      financeNote + ' ' +
-      trueVsStd;
+      `Your payment ${paymentDir} ${paymentChange}/month. ` +
+      `But here's what most people miss: on your current loan, ${fmt(m1A.interest)} of your payment goes to interest and ${fmt(m1A.principal)} goes to building equity. ` +
+      `On the new loan, ${fmt(m1B.interest)} goes to interest and ${fmt(m1B.principal)} goes to equity. ` +
+      `That's ${fmt(Math.abs(interestDiff))} ${interestDiff > 0 ? 'MORE' : 'LESS'} going to interest each month and ${fmt(Math.abs(principalDiff))} ${principalDiff > 0 ? 'LESS' : 'MORE'} going to equity — ` +
+      `because you reset the amortization clock back to month 1 of a ${newTermYears}-year loan. ` +
+      `After factoring in ${fmt(closingCosts)} in closing costs${cashOutPart}, the true break-even is ${trueVsStd}.`;
   }
 
-  function buildMilestoneTable(pathA, pathB, termA, termB, pmiA, pmiB, upfrontCost) {
+  // ===== MILESTONE TABLE =====
+  function buildMilestoneTable(pathA, pathB, termA, termB, pmiA, pmiB, upfrontCost, cashOut) {
     const thead = document.getElementById('milestoneHead');
     const tbody = document.getElementById('milestoneBody');
     if (!thead || !tbody) return;
@@ -361,8 +415,10 @@
       <th>Year</th>
       <th>Current Balance</th>
       <th>Refi Balance</th>
-      <th>Cum. Interest (Current)</th>
-      <th>Cum. Interest (Refi)</th>
+      <th>Mo. Interest (Current)</th>
+      <th>Mo. Interest (Refi)</th>
+      <th>Mo. Principal (Current)</th>
+      <th>Mo. Principal (Refi)</th>
       <th>Net Position</th>
     </tr>`;
 
@@ -375,18 +431,26 @@
       const cumPMI_B = pmiB * m;
 
       const econA = snA.cumPayment + snA.balance + cumPMI_A;
-      const econB = snB.cumPayment + snB.balance + upfrontCost + cumPMI_B;
+      const econB = snB.cumPayment + snB.balance + upfrontCost + cumPMI_B - cashOut;
       const netPos = econA - econB; // positive = refi is ahead
       const netFmt = fmt(Math.abs(netPos));
       const netLabel = netPos > 0 ? `Refi ahead by ${netFmt}` : netPos < 0 ? `Current ahead by ${netFmt}` : 'Even';
       const netClass = netPos > 0 ? 'cond-green' : netPos < 0 ? 'cond-red' : '';
 
+      // Monthly interest and principal AT that year point (not cumulative)
+      const moIntA = snA.interest != null ? fmt(snA.interest) : '$0';
+      const moIntB = snB.interest != null ? fmt(snB.interest) : '$0';
+      const moPrinA = snA.principal != null ? fmt(snA.principal) : '$0';
+      const moPrinB = snB.principal != null ? fmt(snB.principal) : '$0';
+
       rows += `<tr>
         <td><strong>Yr ${yr}</strong></td>
         <td>${fmt(snA.balance)}</td>
         <td>${fmt(snB.balance)}</td>
-        <td>${fmt(snA.cumInterest + cumPMI_A)}</td>
-        <td>${fmt(snB.cumInterest + cumPMI_B)}</td>
+        <td>${moIntA}</td>
+        <td>${moIntB}</td>
+        <td>${moPrinA}</td>
+        <td>${moPrinB}</td>
         <td class="${netClass}">${netLabel}</td>
       </tr>`;
     });
@@ -394,21 +458,23 @@
     tbody.innerHTML = rows;
   }
 
-  function buildDealSummary(monthlySavings, trueBE, holdingMonths, netSavings) {
+  // ===== DEAL SUMMARY =====
+  function buildDealSummary(monthlySavings, trueBE, holdingMonths, netSavings, cashOut) {
     const el = document.getElementById('dealSummaryText');
     const sec = document.getElementById('dealSummary');
     if (!el || !sec) return;
 
     const holdYrs = Math.round(holdingMonths / 12);
+    const cashOutNote = cashOut > 0 ? ` ${fmt(cashOut)} in cash at closing.` : '';
     let text = '';
 
     if (monthlySavings < 0) {
-      text = `This refinance increases your monthly payment by ${fmt(Math.abs(monthlySavings))}. The standard break-even does not apply. Over your ${holdYrs}-year hold period, you would be ${fmt(Math.abs(netSavings))} worse off than keeping your current loan.`;
+      text = `This refinance increases your monthly payment by ${fmt(Math.abs(monthlySavings))}. The standard break-even does not apply.${cashOutNote ? ' However, you receive' + cashOutNote : ''} Over your ${holdYrs}-year hold period, you would be ${fmt(Math.abs(netSavings))} ${netSavings < 0 ? 'worse off' : 'ahead'} compared to keeping your current loan.`;
     } else if (!isFinite(trueBE)) {
-      text = `Monthly payment savings of ${fmt(monthlySavings)}/month. However, the true economic break-even is not reached within the loan lifetimes, due to the amortization reset. Over your ${holdYrs}-year hold, you'd be ${netSavings > 0 ? 'ahead' : 'behind'} by ${fmt(Math.abs(netSavings))}.`;
+      text = `Monthly payment savings of ${fmt(monthlySavings)}/month.${cashOutNote ? ' Cash out at closing:' + cashOutNote : ''} However, the true economic break-even is not reached within the loan lifetimes, due to the amortization reset. Over your ${holdYrs}-year hold, you'd be ${netSavings > 0 ? 'ahead' : 'behind'} by ${fmt(Math.abs(netSavings))}.`;
     } else {
       const ahead = holdingMonths > trueBE;
-      text = `Monthly payment savings of ${fmt(monthlySavings)}/month. True break-even: ${fmtMonthsLong(trueBE)}. You plan to stay ${holdYrs} years — you ${ahead ? 'will' : 'will not'} pass the true break-even before your expected move date. Net position at hold period: ${netSavings > 0 ? 'ahead' : 'behind'} by ${fmt(Math.abs(netSavings))}.`;
+      text = `Monthly payment savings of ${fmt(monthlySavings)}/month.${cashOutNote ? ' Cash out at closing:' + cashOutNote : ''} True break-even: ${fmtMonthsLong(trueBE)}. You plan to stay ${holdYrs} years — you ${ahead ? 'will' : 'will not'} pass the true break-even before your expected move date. Net position at hold period: ${netSavings > 0 ? 'ahead' : 'behind'} by ${fmt(Math.abs(netSavings))}.`;
     }
 
     el.textContent = text;
@@ -433,6 +499,7 @@
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
       const defaults = {
+        homeValue: '$500,000',
         currentBalance: '$350,000',
         currentRate: '6.5',
         remainingTerm: '300',
@@ -440,6 +507,7 @@
         newRate: '5.5',
         newTerm: '360',
         newPMI: '$0',
+        newLoanAmount: '$350,000',
         closingCosts: '$8,000',
         holdingYears: '7',
         address: ''
@@ -450,6 +518,8 @@
       });
       const fc = document.getElementById('financeClosing');
       if (fc) fc.checked = false;
+      // Reset auto-fill flag
+      newLoanAmountUserEdited = false;
       calculate();
     });
   }
@@ -472,18 +542,18 @@
     let y = margin;
 
     // Colors
-    const teal = [0, 52, 77];
+    const teal      = [0, 52, 77];
     const tealLight = [1, 104, 145];
-    const darkText = [26, 26, 26];
+    const darkText  = [26, 26, 26];
     const mutedText = [100, 100, 100];
-    const lightBg = [245, 247, 250];
-    const white = [255, 255, 255];
-    const green = [22, 101, 52];
-    const greenBg = [220, 252, 231];
-    const yellow = [133, 100, 0];
-    const yellowBg = [254, 249, 195];
-    const red = [153, 27, 27];
-    const redBg = [254, 226, 226];
+    const lightBg   = [245, 247, 250];
+    const white     = [255, 255, 255];
+    const green     = [22, 101, 52];
+    const greenBg   = [220, 252, 231];
+    const yellow    = [133, 100, 0];
+    const yellowBg  = [254, 249, 195];
+    const red       = [153, 27, 27];
+    const redBg     = [254, 226, 226];
 
     // White background
     doc.setFillColor(...white);
@@ -512,7 +582,7 @@
 
     y += 16;
 
-    // Address
+    // Address line
     const address = document.getElementById('address')?.value || 'No address provided';
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
@@ -556,53 +626,55 @@
       doc.text('No data — please run the calculator first.', margin, y + 10);
     } else {
       const colAItems = [
-        { label: 'Current Balance', value: fmt(c.currentBalance) },
-        { label: 'Current Rate', value: c.currentRate + '%' },
-        { label: 'Remaining Term', value: c.remainingTerm + ' months' },
-        { label: 'Current PMI', value: fmt(c.currentPMI) },
+        { label: 'Home Value',        value: fmt(c.homeValue) },
+        { label: 'Current Balance',   value: fmt(c.currentBalance) },
+        { label: 'Current Equity',    value: fmt(c.currentEquity) },
+        { label: 'Current Rate',      value: c.currentRate + '%' },
+        { label: 'Remaining Term',    value: c.remainingTerm + ' months' },
+        { label: 'Current PMI',       value: fmt(c.currentPMI) },
         { divider: true },
-        { label: 'CURRENT MONTHLY P+I', value: fmt(c.currentPI), bold: true },
-        { label: 'CURRENT TOTAL PAYMENT', value: fmt(c.currentTotalPayment), bold: true }
+        { label: 'CURRENT MONTHLY P+I',    value: fmt(c.currentPI),           bold: true },
+        { label: 'CURRENT TOTAL PAYMENT',  value: fmt(c.currentTotalPayment), bold: true }
       ];
       const colBItems = [
-        { label: 'New Rate', value: c.newRate + '%' },
-        { label: 'New Term', value: c.newTerm + ' months' },
-        { label: 'New PMI', value: fmt(c.newPMI) },
-        { label: 'New Loan Amount', value: fmt(c.newLoanPrincipal) },
+        { label: 'New Loan Amount',   value: fmt(c.newLoanAmount) },
+        { label: 'Cash Out at Closing', value: fmt(c.cashOutAtClosing) },
+        { label: 'New Equity',        value: fmt(c.newEquity) },
+        { label: 'New Rate',          value: c.newRate + '%' },
+        { label: 'New Term',          value: c.newTerm + ' months' },
+        { label: 'New PMI',           value: fmt(c.newPMI) },
         { divider: true },
-        { label: 'NEW MONTHLY P+I', value: fmt(c.newPI), bold: true },
+        { label: 'NEW MONTHLY P+I',   value: fmt(c.newPI),           bold: true },
         { label: 'NEW TOTAL PAYMENT', value: fmt(c.newTotalPayment), bold: true }
       ];
       const colCItems = [
-        { label: 'Closing Costs', value: fmt(c.closingCosts) },
-        { label: 'Finance Closing Costs?', value: c.financeClosing ? 'Yes (rolled in)' : 'No (paid upfront)' },
-        { label: 'Holding Period', value: c.holdingYears + ' years' },
+        { label: 'Closing Costs',           value: fmt(c.closingCosts) },
+        { label: 'Finance Closing Costs?',  value: c.financeClosing ? 'Yes (rolled in)' : 'No (paid upfront)' },
+        { label: 'Holding Period',          value: c.holdingYears + ' years' },
         { divider: true },
-        { label: 'MONTHLY SAVINGS', value: fmt(c.monthlySavings), bold: true },
-        { label: 'STANDARD BREAK-EVEN', value: fmtMonths(c.standardBEMonths), bold: true },
-        { label: 'TRUE BREAK-EVEN', value: fmtMonths(c.trueBreakEvenMonth), bold: true }
+        { label: 'MONTHLY SAVINGS',     value: fmt(c.monthlySavings),            bold: true },
+        { label: 'STANDARD BREAK-EVEN', value: fmtMonths(c.standardBEMonths),   bold: true },
+        { label: 'TRUE BREAK-EVEN',     value: fmtMonths(c.trueBreakEvenMonth), bold: true }
       ];
 
-      drawDataBlock(colX[0], 'Current Loan', colAItems, y);
-      drawDataBlock(colX[1], 'New Loan', colBItems, y);
-      const endY3 = drawDataBlock(colX[2], 'Transaction & Holding', colCItems, y);
-      y = Math.max(endY3, y + colAItems.length * 3.5 + 8) + 3;
+      const endA = drawDataBlock(colX[0], 'Current Loan',          colAItems, y);
+      const endB = drawDataBlock(colX[1], 'New Loan',              colBItems, y);
+      const endC = drawDataBlock(colX[2], 'Transaction & Holding', colCItems, y);
+      y = Math.max(endA, endB, endC) + 3;
     }
 
     // === VERDICT BOX ===
     if (c) {
-      const verdictText = document.getElementById('verdictText')?.textContent || '';
+      const verdictText  = document.getElementById('verdictText')?.textContent  || '';
       const verdictTitle = document.getElementById('verdictTitle')?.textContent || 'THE VERDICT';
-      const verdictCls = document.getElementById('verdictSection')?.className || '';
+      const verdictCls   = document.getElementById('verdictSection')?.className || '';
 
-      let vBg = lightBg;
-      let vBorder = tealLight;
-      let vTextColor = darkText;
-      if (verdictCls.includes('positive')) { vBg = greenBg; vBorder = green; vTextColor = green; }
+      let vBg = lightBg, vBorder = tealLight, vTextColor = darkText;
+      if (verdictCls.includes('positive'))  { vBg = greenBg;  vBorder = green;  vTextColor = green; }
       else if (verdictCls.includes('negative')) { vBg = redBg; vBorder = red; vTextColor = red; }
-      else if (verdictCls.includes('caution')) { vBg = yellowBg; vBorder = yellow; vTextColor = yellow; }
+      else if (verdictCls.includes('caution'))  { vBg = yellowBg; vBorder = yellow; vTextColor = yellow; }
 
-      const boxH = 18;
+      const boxH = 20;
       doc.setFillColor(...vBg);
       doc.roundedRect(margin, y, cw, boxH, 2, 2, 'F');
       doc.setDrawColor(...vBorder);
@@ -621,7 +693,7 @@
       doc.setFontSize(6);
       doc.setTextColor(...darkText);
       const splitVerdict = doc.splitTextToSize(verdictText, cw - 8);
-      doc.text(splitVerdict.slice(0, 3), margin + 4, y + 10);
+      doc.text(splitVerdict.slice(0, 4), margin + 4, y + 10);
 
       y += boxH + 5;
     }
@@ -635,10 +707,10 @@
       doc.roundedRect(margin, y, cw, 16, 2, 2, 'S');
 
       const results = [
-        { label: 'Monthly Savings', value: document.getElementById('resultMonthlySavings')?.textContent || '—' },
-        { label: 'Standard Break-Even', value: document.getElementById('resultStandardBE')?.textContent || '—' },
-        { label: 'True Break-Even', value: document.getElementById('resultTrueBreakEven')?.textContent || '—' },
-        { label: 'Net Savings at Hold', value: document.getElementById('resultNetSavings')?.textContent || '—' }
+        { label: 'Monthly Savings',      value: document.getElementById('resultMonthlySavings')?.textContent || '—' },
+        { label: 'Standard Break-Even',  value: document.getElementById('resultStandardBE')?.textContent     || '—' },
+        { label: 'True Break-Even',      value: document.getElementById('resultTrueBreakEven')?.textContent  || '—' },
+        { label: 'Net Savings at Hold',  value: document.getElementById('resultNetSavings')?.textContent     || '—' }
       ];
 
       const rColW = cw / results.length;
@@ -693,8 +765,8 @@
         startY: y,
         margin: { left: margin, right: margin },
         styles: {
-          fontSize: 7,
-          cellPadding: 1.8,
+          fontSize: 6,
+          cellPadding: 1.5,
           textColor: darkText,
           lineColor: [200, 200, 200],
           lineWidth: 0.2,
@@ -706,12 +778,12 @@
           fillColor: teal,
           textColor: white,
           fontStyle: 'bold',
-          fontSize: 7,
+          fontSize: 6,
           halign: 'center'
         },
         columnStyles: {
-          0: { halign: 'left', fontStyle: 'bold', cellWidth: 18, textColor: mutedText },
-          5: { halign: 'center' }
+          0: { halign: 'left', fontStyle: 'bold', cellWidth: 14, textColor: mutedText },
+          7: { halign: 'center' }
         },
         alternateRowStyles: { fillColor: [250, 250, 252] },
         didParseCell: function (data) {
@@ -725,7 +797,7 @@
       });
     }
 
-    // === BOTTOM ZONE: Deal Summary + QR placeholder ===
+    // === BOTTOM ZONE: Deal Summary (left) + QR placeholder (right) ===
     const fy = H - 10;
     const afterTableY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 3 : y + 3;
     const bottomZoneBottom = fy - 2;

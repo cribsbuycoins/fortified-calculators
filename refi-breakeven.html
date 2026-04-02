@@ -53,9 +53,18 @@
         </div>
         <div class="section-body">
           <div class="input-row">
+            <label for="homeValue">Home Value</label>
+            <input type="text" id="homeValue" value="$500,000" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
             <label for="currentBalance">Current Balance</label>
             <input type="text" id="currentBalance" value="$350,000" inputmode="numeric" class="money-input">
           </div>
+          <div class="computed-row">
+            <label>Current Equity</label>
+            <span class="computed-value" id="currentEquity">$150,000</span>
+          </div>
+          <hr class="section-divider">
           <div class="input-row">
             <label for="currentRate">Current Interest Rate (%)</label>
             <input type="text" id="currentRate" value="6.5" inputmode="decimal" class="pct-input">
@@ -98,13 +107,22 @@
             <label for="newPMI">New PMI ($/mo)</label>
             <input type="text" id="newPMI" value="$0" inputmode="numeric" class="money-input">
           </div>
+          <hr class="section-divider">
+          <div class="input-row">
+            <label for="newLoanAmount">New Loan Amount</label>
+            <input type="text" id="newLoanAmount" value="$350,000" inputmode="numeric" class="money-input">
+          </div>
           <div class="computed-row">
             <label>New Monthly P+I</label>
             <span class="computed-value" id="newPIComputed">—</span>
           </div>
           <div class="computed-row">
-            <label>New Loan Amount</label>
-            <span class="computed-value" id="newLoanAmount">—</span>
+            <label>Cash Out at Closing</label>
+            <span class="computed-value" id="cashOutAtClosing">$0</span>
+          </div>
+          <div class="computed-row">
+            <label>New Equity</label>
+            <span class="computed-value" id="newEquity">$150,000</span>
           </div>
         </div>
         <div class="section-total">
