@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Real Estate Calculators — Fortified Realty Group</title>
-  <meta name="description" content="Free real estate analysis calculators from Fortified Realty Group, LLC — Buy and Hold, BRRR, Selling Analyzer, and more. One North Main Street, Fall River, MA 02720.">
+  <meta name="description" content="Free real estate analysis calculators from Fortified Realty Group, LLC — Buy and Hold, Flip Analyzer, BRRRBBR, and more. One North Main Street, Fall River, MA 02720.">
   <meta name="theme-color" content="#00344D">
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
@@ -34,76 +34,158 @@
     <p>Free real estate analysis tools built by an investor, for investors. No login, no email capture — just the math that matters.</p>
   </section>
 
-  <main class="calc-grid">
+  <main style="max-width:var(--content-wide); margin:0 auto; padding:0 var(--space-6) var(--space-16);">
 
-    <a href="./buy-and-hold.html" class="calc-card">
-      <div class="card-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-      </div>
-      <h2>Buy &amp; Hold Analyzer</h2>
-      <p>Analyze cash flow, cap rate, cash-on-cash return, and DSCR for rental properties with up to 20 units. Includes buying range analysis with conditional formatting.</p>
-      <div class="card-status live"><span class="dot"></span>Live</div>
-    </a>
+    <!-- ===== ROW 1: INVESTOR CORE ===== -->
+    <div style="margin-bottom:var(--space-4);">
+      <h2 style="font-family:var(--font-display); font-size:var(--text-lg); font-weight:700; color:var(--color-accent); text-transform:uppercase; letter-spacing:0.06em;">Investor Tools</h2>
+      <p style="font-size:var(--text-sm); color:var(--color-text-muted); margin-top:var(--space-2);">Analyze acquisitions, flips, and full-cycle BRRRBBR strategies.</p>
+    </div>
+    <div class="calc-grid" style="padding:0; margin-bottom:var(--space-12);">
 
-    <a href="./flip-analyzer.html" class="calc-card">
-      <div class="card-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-        </svg>
-      </div>
-      <h2>Flip Analyzer</h2>
-      <p>Model your flip from entry to exit — hard money, HELOC, holding costs, and profit/cash-on-cash matrices across ARVs and timelines.</p>
-      <div class="card-status live"><span class="dot"></span>Live</div>
-    </a>
+      <a href="./buy-and-hold.html" class="calc-card">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        <h2>Buy &amp; Hold Analyzer</h2>
+        <p>Cash flow, cap rate, DSCR, and cash-on-cash return with a buying range analysis for up to 20 units.</p>
+        <div class="card-status live"><span class="dot"></span>Live</div>
+      </a>
 
-    <div class="calc-card disabled">
-      <div class="card-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="1" x2="12" y2="23"/>
-          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-        </svg>
-      </div>
-      <h2>Selling Analyzer</h2>
-      <p>Estimate net proceeds after commissions, closing costs, and payoff to know your true take-home.</p>
-      <div class="card-status coming"><span class="dot"></span>Coming Soon</div>
+      <a href="./flip-analyzer.html" class="calc-card">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+        </div>
+        <h2>Flip Analyzer</h2>
+        <p>Model your flip from entry to exit — hard money, HELOC, holding costs, and profit matrices across ARVs and timelines.</p>
+        <div class="card-status live"><span class="dot"></span>Live</div>
+      </a>
+
+      <a href="./brrrbbr.html" class="calc-card">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+          </svg>
+        </div>
+        <h2>Flip to BRRRBBR</h2>
+        <p>Full cycle — flip it, rent it, refi it, stack sats. Model the hold, refinance, and Bitcoin strategic reserve.</p>
+        <div class="card-status live"><span class="dot"></span>Live</div>
+      </a>
+
     </div>
 
-    <div class="calc-card disabled">
-      <div class="card-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-        </svg>
+    <!-- ===== ROW 2: ADVANCED INVESTOR ===== -->
+    <div style="margin-bottom:var(--space-4);">
+      <h2 style="font-family:var(--font-display); font-size:var(--text-lg); font-weight:700; color:var(--color-accent); text-transform:uppercase; letter-spacing:0.06em;">Advanced Investor</h2>
+      <p style="font-size:var(--text-sm); color:var(--color-text-muted); margin-top:var(--space-2);">Sophisticated tools for portfolio owners and long-term wealth builders.</p>
+    </div>
+    <div class="calc-grid" style="padding:0; margin-bottom:var(--space-12);">
+
+      <div class="calc-card disabled">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <h2>Sale Analyzer</h2>
+        <p>Estimate net proceeds with capital gains tax calculations, depreciation recapture, and 1031 exchange scenarios.</p>
+        <div class="card-status coming"><span class="dot"></span>Coming Soon</div>
       </div>
-      <h2>Rent vs. Buy</h2>
-      <p>Compare the long-term financial impact of renting versus buying for homeowners and investors.</p>
-      <div class="card-status coming"><span class="dot"></span>Coming Soon</div>
+
+      <div class="calc-card disabled">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+        </div>
+        <h2>Portfolio Refi Analyzer</h2>
+        <p>Model a portfolio-wide refinance — compare rates, terms, and cash-out scenarios across multiple properties.</p>
+        <div class="card-status coming"><span class="dot"></span>Coming Soon</div>
+      </div>
+
+      <div class="calc-card disabled">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+        </div>
+        <h2>Store of Value Calculator</h2>
+        <p>Should you hold the equity, refi and redeploy, or invest elsewhere? Compare real estate vs. stocks, Bitcoin, and other assets.</p>
+        <div class="card-status coming"><span class="dot"></span>Coming Soon</div>
+      </div>
+
     </div>
 
-    <div class="calc-card disabled">
-      <div class="card-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
-        </svg>
-      </div>
-      <h2>Mortgage Calculator</h2>
-      <p>Quick P&amp;I, total interest, and amortization schedule for any loan scenario.</p>
-      <div class="card-status coming"><span class="dot"></span>Coming Soon</div>
+    <!-- ===== ROW 3: RESIDENTIAL / FIRST-TIME BUYER ===== -->
+    <div style="margin-bottom:var(--space-4);">
+      <h2 style="font-family:var(--font-display); font-size:var(--text-lg); font-weight:700; color:var(--color-accent); text-transform:uppercase; letter-spacing:0.06em;">Homeowner &amp; First-Time Buyer</h2>
+      <p style="font-size:var(--text-sm); color:var(--color-text-muted); margin-top:var(--space-2);">Simple tools for buying, selling, or refinancing your home.</p>
     </div>
+    <div class="calc-grid" style="padding:0; margin-bottom:var(--space-12);">
 
-    <a href="./brrrbbr.html" class="calc-card">
-      <div class="card-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-        </svg>
+      <div class="calc-card disabled">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+        <h2>My First Mortgage</h2>
+        <p>See what you can afford — monthly payment, total interest, and how much house your income supports.</p>
+        <div class="card-status coming"><span class="dot"></span>Coming Soon</div>
       </div>
-      <h2>Flip to BRRRBBR</h2>
-      <p>Flip it, rent it, refi it, stack sats — model the full cycle from purchase to Bitcoin strategic reserve.</p>
-      <div class="card-status live"><span class="dot"></span>Live</div>
-    </a>
+
+      <div class="calc-card disabled">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+        </div>
+        <h2>Buy vs. Rent</h2>
+        <p>Compare the long-term financial impact of renting versus buying — total cost, equity buildup, and break-even timeline.</p>
+        <div class="card-status coming"><span class="dot"></span>Coming Soon</div>
+      </div>
+
+      <div class="calc-card disabled">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+        </div>
+        <h2>Mortgage Calculator</h2>
+        <p>Quick P&amp;I, total interest, and full amortization schedule for any loan scenario.</p>
+        <div class="card-status coming"><span class="dot"></span>Coming Soon</div>
+      </div>
+
+      <div class="calc-card disabled">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+          </svg>
+        </div>
+        <h2>True Cost of Your Refi</h2>
+        <p>See the real break-even on a refinance — monthly savings vs. closing costs, and when it actually pays off.</p>
+        <div class="card-status coming"><span class="dot"></span>Coming Soon</div>
+      </div>
+
+      <div class="calc-card disabled">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <h2>Home Sale Analyzer</h2>
+        <p>Estimate your net proceeds after commissions, closing costs, and mortgage payoff — know your real take-home.</p>
+        <div class="card-status coming"><span class="dot"></span>Coming Soon</div>
+      </div>
+
+    </div>
 
   </main>
 
