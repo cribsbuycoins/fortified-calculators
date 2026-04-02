@@ -684,36 +684,38 @@
     y = renderTable('profitTable', 'Pre-Tax Gross Profit', y);
     y = renderTable('summaryTable', 'Summaries', y);
 
-    // Check if CoC table fits on same page
-    if (y > H - 60) {
-      doc.addPage();
-      y = margin + 5;
-    }
+    // No page break — must fit on one page
     y = renderTable('cocTable', 'Cash on Cash Return', y);
 
-    // ===== DEAL SUMMARY PARAGRAPH =====
+    // ===== FOOTER AREA (fixed position) =====
+    const fy = H - 10;
+
+    // ===== DEAL SUMMARY PARAGRAPH (fit between last table and footer) =====
     const dealSummaryContent = document.getElementById('dealSummaryText')?.textContent;
     if (dealSummaryContent && dealSummaryContent.trim() && dealSummaryContent !== 'Enter your numbers above to see a plain English analysis.') {
-      // Check if we need more space — add a small gap after last table
-      if (y > H - 40) {
-        doc.addPage();
-        y = margin + 5;
+      const availableSpace = fy - 22 - y; // space above footer/QR area
+      if (availableSpace > 8) {
+        // Pick font size that fits: try 6.5, then 5.5, then 5
+        let summaryFontSize = 6.5;
+        let splitSummary;
+        const summaryWidth = cw - 20; // leave room for QR on right
+        for (const trySize of [6.5, 5.5, 5]) {
+          doc.setFontSize(trySize);
+          splitSummary = doc.splitTextToSize(dealSummaryContent.trim(), summaryWidth);
+          const neededHeight = splitSummary.length * (trySize * 0.5) + 6;
+          if (neededHeight <= availableSpace) { summaryFontSize = trySize; break; }
+          summaryFontSize = trySize;
+        }
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(summaryFontSize);
+        doc.setTextColor(...teal);
+        doc.text('DEAL SUMMARY', margin, y + 1);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(summaryFontSize);
+        doc.setTextColor(...darkText);
+        doc.text(splitSummary, margin, y + 1 + summaryFontSize * 0.6);
       }
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.setTextColor(...teal);
-      doc.text('DEAL SUMMARY', margin, y);
-      y += 4;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(...darkText);
-      const splitSummary = doc.splitTextToSize(dealSummaryContent.trim(), cw);
-      doc.text(splitSummary, margin, y);
-      y += splitSummary.length * 3.5 + 4;
     }
-
-    // ===== QR CODE PLACEHOLDER =====
-    const fy = (doc.internal.getNumberOfPages() > 1 ? doc.internal.pageSize.getHeight() : H) - 10;
     const qrSize = 15;
     const qrX = W - margin - qrSize;
     const qrY = fy - 18;
