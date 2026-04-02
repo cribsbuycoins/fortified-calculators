@@ -640,24 +640,32 @@
       }
     }
 
-    // --- HEADER BAND ---
-    rect(0, 0, 0, W, 90, DARK);
+    // --- HEADER BAND: Logo left half, Title right half ---
+    const headerH = 80;
+    rect(0, 0, 0, W, headerH, DARK);
+    const halfW = W / 2;
+
+    // Left half: logo centered vertically and horizontally
     try {
-      // Logo: 500x115 aspect ratio = 4.35:1. At 150pt wide -> ~34pt tall. Centered vertically in top portion.
-      doc.addImage('./assets/fortified-logo-white.png', 'PNG', margin, 8, 150, 34);
+      const logoW = 130, logoH = 30;
+      const logoX = (halfW - logoW) / 2;
+      const logoY = (headerH - logoH) / 2;
+      doc.addImage('./assets/fortified-logo-white.png', 'PNG', logoX, logoY, logoW, logoH);
     } catch(e) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      doc.setTextColor(255, 255, 255);
-      doc.text('FORTIFIED REALTY GROUP', margin, 28);
+      setFont(14, 'bold', WHITE);
+      doc.text('FORTIFIED REALTY GROUP', halfW / 2, headerH / 2, { align: 'center' });
     }
-    setFont(20, 'bold', WHITE);
-    doc.text('My Path to Homeownership', W / 2, 55, { align: 'center' });
-    setFont(10, 'normal', TEAL);
-    doc.text('A personal savings plan prepared by Fortified Realty Group', W / 2, 68, { align: 'center' });
-    setFont(9, 'normal', [176, 212, 230]);
-    doc.text(`Target: ${fmt(adjustedHomePrice)} home by ${targetDateStr}`, W / 2, 80, { align: 'center' });
-    y = 100;
+
+    // Right half: title, subtitle, target — centered in right half
+    const rightCenter = halfW + halfW / 2;
+    setFont(18, 'bold', WHITE);
+    doc.text('My Path to', rightCenter, 22, { align: 'center' });
+    doc.text('Homeownership', rightCenter, 40, { align: 'center' });
+    setFont(9, 'normal', TEAL);
+    doc.text('A personal savings plan by Fortified Realty Group', rightCenter, 54, { align: 'center' });
+    setFont(8, 'normal', [176, 212, 230]);
+    doc.text(`Target: ${fmt(adjustedHomePrice)} home by ${targetDateStr}`, rightCenter, 66, { align: 'center' });
+    y = headerH + 10;
 
     // --- GOAL SUMMARY BOX ---
     const boxX = margin;
@@ -710,27 +718,27 @@
 
     // --- RENT vs FUTURE PAYMENT (big, prominent) ---
     const rentFutureY = y;
-    const halfW = (boxW - 10) / 2;
+    const rentHalfW = (boxW - 10) / 2;
 
     // Current Rent box
-    rect(0, boxX, rentFutureY, halfW, 30, [245, 247, 250], 3);
+    rect(0, boxX, rentFutureY, rentHalfW, 30, [245, 247, 250], 3);
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
-    doc.roundedRect(boxX, rentFutureY, halfW, 30, 3, 3, 'S');
+    doc.roundedRect(boxX, rentFutureY, rentHalfW, 30, 3, 3, 'S');
     setFont(8, 'normal', GRAY);
-    doc.text('CURRENT RENT', boxX + halfW / 2, rentFutureY + 10, { align: 'center' });
+    doc.text('CURRENT RENT', boxX + rentHalfW / 2, rentFutureY + 10, { align: 'center' });
     setFont(16, 'bold', DARK);
-    doc.text(fmt(currentRent) + '/mo', boxX + halfW / 2, rentFutureY + 24, { align: 'center' });
+    doc.text(fmt(currentRent) + '/mo', boxX + rentHalfW / 2, rentFutureY + 24, { align: 'center' });
 
     // Future Payment box
-    rect(0, boxX + halfW + 10, rentFutureY, halfW, 30, [245, 247, 250], 3);
+    rect(0, boxX + rentHalfW + 10, rentFutureY, rentHalfW, 30, [245, 247, 250], 3);
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
-    doc.roundedRect(boxX + halfW + 10, rentFutureY, halfW, 30, 3, 3, 'S');
+    doc.roundedRect(boxX + rentHalfW + 10, rentFutureY, rentHalfW, 30, 3, 3, 'S');
     setFont(8, 'normal', GRAY);
-    doc.text('FUTURE MORTGAGE PAYMENT', boxX + halfW + 10 + halfW / 2, rentFutureY + 10, { align: 'center' });
+    doc.text('FUTURE MORTGAGE PAYMENT', boxX + rentHalfW + 10 + rentHalfW / 2, rentFutureY + 10, { align: 'center' });
     setFont(16, 'bold', DARK);
-    doc.text(fmt(Math.round(futurePI)) + '/mo', boxX + halfW + 10 + halfW / 2, rentFutureY + 24, { align: 'center' });
+    doc.text(fmt(Math.round(futurePI)) + '/mo', boxX + rentHalfW + 10 + rentHalfW / 2, rentFutureY + 24, { align: 'center' });
 
     y = rentFutureY + 38;
 
