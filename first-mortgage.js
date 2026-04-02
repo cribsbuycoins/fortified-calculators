@@ -692,8 +692,7 @@
     const outcomeText = onTrack
       ? `Projected to reach ${fmt(projectedBalance)} by ${targetDateStr} — ${fmt(projectedBalance - adjustedCashNeeded)} ahead of goal`
       : `Projected ${fmt(projectedBalance)} by ${targetDateStr} — ${fmt(adjustedCashNeeded - projectedBalance)} short`;
-    const checkmark = onTrack ? '✓ ' : '⚠ ';
-    doc.text(checkmark + outcomeText, W / 2, y + 4, { align: 'center' });
+    doc.text(outcomeText, W / 2, y + 4, { align: 'center' });
     y += 14;
 
     // --- ACTION PLAN HEADER ---
@@ -751,7 +750,7 @@
         rect(0, boxX, actionY, boxW, 16, [230, 245, 235], 2);
         setFont(8.5, 'italic', [16, 120, 80]);
         doc.text(
-          `Milestone: By ${monthLabel(phase.phaseEnd - 1)}, you should have about ${fmt(balanceAtPhase)} saved. ✓`,
+          `Milestone: By ${monthLabel(phase.phaseEnd - 1)}, you should have about ${fmt(balanceAtPhase)} saved.`,
           boxX + 8, actionY + 11
         );
         actionY += 22;
@@ -765,7 +764,7 @@
       if (actionY + 40 > pageBottom) { doc.addPage(); actionY = margin + 10; }
       rect(0, boxX, actionY, boxW, 36, [255, 243, 205], 3);
       setFont(8, 'bold', [146, 64, 14]);
-      doc.text('⚠  Risk Warning', boxX + 8, actionY + 12);
+      doc.text('RISK WARNING', boxX + 8, actionY + 12);
       setFont(7.5, 'normal', [120, 53, 15]);
       const riskText = vehicle === 'bitcoin'
         ? 'Bitcoin is highly volatile. Values can drop 50%+ in short periods. Only use this for long-term goals, not near-term home purchases.'
@@ -774,6 +773,22 @@
         : `${vehicleLabel} investments fluctuate with market conditions. Past returns don't guarantee future results. Consider a stable vehicle like a Savings Account for short timelines.`;
       doc.text(riskText, boxX + 8, actionY + 24, { maxWidth: boxW - 16 });
       actionY += 46;
+    }
+
+    // --- DEAL SUMMARY on last page ---
+    const dealSummaryContent = document.getElementById('dealSummaryText')?.textContent;
+    if (dealSummaryContent && dealSummaryContent !== 'Enter your numbers above to see a plain English analysis.') {
+      if (actionY + 60 > pageBottom) { doc.addPage(); actionY = margin + 10; }
+      actionY += 4;
+      rect(0, boxX, actionY, boxW, 3, TEAL, 0);
+      actionY += 8;
+      setFont(9, 'bold', DARK);
+      doc.text('DEAL SUMMARY', boxX, actionY);
+      actionY += 12;
+      setFont(8, 'normal', GRAY);
+      const splitSummary = doc.splitTextToSize(dealSummaryContent, boxW - 8);
+      doc.text(splitSummary, boxX + 4, actionY);
+      actionY += splitSummary.length * 10 + 8;
     }
 
     // --- FOOTER on all pages ---
