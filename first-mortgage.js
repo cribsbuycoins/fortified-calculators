@@ -125,40 +125,54 @@
   function buildSchedule(months, startBalance, targetCash, rampStyle, annualReturn, startingSavings) {
     const monthlyRate = annualReturn / 100 / 12;
     const numPhases = Math.ceil(months / 3);
+    if (numPhases === 0 || months === 0) return [];
 
-    // Average monthly savings needed (ignoring growth) as a rough starting guess
-    const gap = Math.max(0, targetCash - startBalance);
-    // Average savings needed, but at least what they're already saving
-    const rawAvg = months > 0 ? gap / months : 0;
-    const avgSavings = Math.max(rawAvg, startingSavings);
-
-    // Build phase multipliers based on ramp style
-    // Aggressive: start high, increase fast (front-loaded)
-    // Moderate: smooth ramp from 70% to 130%
-    // Passive: start low, ramp slowly
+    // Style multipliers — shape the curve, all styles hit the same target
     function phaseMultiplier(phaseIdx, total, style) {
-      const t = total <= 1 ? 0 : phaseIdx / (total - 1); // 0 to 1
-      if (style === 'aggressive') {
-        // Front-loaded: save hard from day 1, ramp up steeply
-        return 1.0 + t * 0.6; // 100% -> 160% of average
-      } else if (style === 'moderate') {
-        // Balanced: start a bit below average, smooth ramp
-        return 0.7 + t * 0.6; // 70% -> 130%
-      } else { // passive
-        // Slow start: light early, bigger increases later
-        return 0.4 + t * 1.0; // 40% -> 140%
-      }
+      const t = total <= 1 ? 0 : phaseIdx / (total - 1);
+      if (style === 'aggressive') return 1.0 + t * 0.6;
+      if (style === 'moderate') return 0.7 + t * 0.6;
+      return 0.4 + t * 1.0; // passive
     }
 
-    // Build the schedule month by month
+    // Pre-compute the multiplier for each phase
+    const phaseWeights = [];
+    for (let p = 0; p < numPhases; p++) {
+      const mult = phaseMultiplier(p, numPhases, rampStyle);
+      const phaseMonths = Math.min((p + 1) * 3, months) - p * 3;
+      phaseWeights.push({ mult, months: phaseMonths });
+    }
+
+    // Goal-seek: find the base amount (X) such that saving X*mult per phase
+    // with compound growth lands exactly on targetCash.
+    // Simulate with X=1 to get the "shape", then scale.
+    function simulate(baseAmt) {
+      let bal = startBalance;
+      for (let p = 0; p < numPhases; p++) {
+        const save = Math.max(startingSavings, Math.round(baseAmt * phaseWeights[p].mult));
+        for (let m = 0; m < phaseWeights[p].months; m++) {
+          bal = bal * (1 + monthlyRate) + save;
+        }
+      }
+      return bal;
+    }
+
+    // Binary search for the right base amount
+    let lo = 0, hi = targetCash;
+    for (let i = 0; i < 50; i++) {
+      const mid = (lo + hi) / 2;
+      if (simulate(mid) < targetCash) lo = mid;
+      else hi = mid;
+    }
+    const baseSavings = (lo + hi) / 2;
+
+    // Build the final schedule with the solved base
     const schedule = [];
     let balance = startBalance;
     let month = 0;
 
     for (let p = 0; p < numPhases; p++) {
-      const mult = phaseMultiplier(p, numPhases, rampStyle);
-      // Monthly savings for this phase, floored to whole dollars
-      const phaseSavings = Math.max(0, Math.round(avgSavings * mult));
+      const phaseSavings = Math.max(startingSavings, Math.round(baseSavings * phaseWeights[p].mult));
       const phaseEnd = Math.min((p + 1) * 3, months);
 
       for (let m = p * 3; m < phaseEnd; m++) {
@@ -170,7 +184,7 @@
           phaseStart: p * 3 + 1,
           phaseEnd,
           savings: phaseSavings,
-          cumulative: balance - startBalance, // approximate — includes growth
+          cumulative: balance - startBalance,
           balance: Math.round(balance)
         });
       }
@@ -317,13 +331,14 @@
     const projectedBalance = schedule.length ? schedule[schedule.length - 1].balance : currentSavings;
     const gap = Math.max(0, adjustedCashNeeded - currentSavings);
 
-    // Average monthly savings needed (simple, not compound-adjusted)
-    const avgMonthlyNeeded = months > 0 ? gap / months : 0;
+    // Average monthly savings from the actual schedule (not a simple gap/months guess)
+    const totalScheduledSavings = schedule.reduce((sum, s) => sum + s.savings, 0);
+    const avgMonthlyNeeded = schedule.length > 0 ? Math.round(totalScheduledSavings / schedule.length) : 0;
 
     // Update the savings coaching blurb
     if (savingsBlurb) {
       if (currentMonthlySavings > 0 && avgMonthlyNeeded > 0) {
-        const additional = Math.max(0, Math.round(avgMonthlyNeeded) - currentMonthlySavings);
+        const additional = Math.max(0, avgMonthlyNeeded - currentMonthlySavings);
         if (additional > 0) {
           savingsBlurb.innerHTML = `<strong>You're already saving ${fmt(currentMonthlySavings)}/month.</strong> To hit your goal, you need about ${fmt(Math.round(avgMonthlyNeeded))}/month total — that's only <strong>${fmt(additional)}/month more</strong>. The schedule below shows the additional amount on top of what you're already doing.`;
         } else {
