@@ -5,17 +5,22 @@
 
   // ===== SAVINGS VEHICLE RETURNS =====
   const VEHICLE_RETURNS = {
-    hysa:        { label: 'High-Yield Savings',  rate: 4.5,  risk: 'Low' },
-    moneymarket: { label: 'Money Market',         rate: 4.0,  risk: 'Low' },
-    sp500:       { label: 'S&P 500 Index Fund',   rate: 10.0, risk: 'Medium' },
-    nasdaq:      { label: 'Nasdaq',               rate: 12.0, risk: 'Medium-High' },
-    bitcoin:     { label: 'Bitcoin (High Risk)',  rate: 50.0, risk: 'Very High' },
-    cash:        { label: 'Cash / Checking',      rate: 0.1,  risk: 'None' },
-    custom:      { label: 'Custom',               rate: 4.5,  risk: 'Varies' }
+    savings: { label: 'Savings Account',    rate: 4.0,  risk: 'Low' },
+    sp500:   { label: 'S&P 500 Index Fund', rate: 10.0, risk: 'Medium' },
+    nasdaq:  { label: 'Nasdaq Index Fund',  rate: 12.0, risk: 'Medium-High' },
+    bitcoin: { label: 'Bitcoin',            rate: 17.0, risk: 'Very High' },
+    tesla:   { label: 'Tesla (TSLA)',       rate: 20.0, risk: 'Very High' },
+    custom:  { label: 'Custom',             rate: 4.0,  risk: 'Varies' }
   };
 
   // All savings vehicles for scenario table
-  const SCENARIO_VEHICLES = ['hysa', 'moneymarket', 'sp500', 'bitcoin', 'cash'];
+  const SCENARIO_VEHICLES = [
+    { name: 'Savings Account',    rate: 4.0,  risk: 'Low' },
+    { name: 'S&P 500 Index Fund', rate: 10.0, risk: 'Medium' },
+    { name: 'Nasdaq Index Fund',  rate: 12.0, risk: 'Medium-High' },
+    { name: 'Bitcoin',            rate: 17.0, risk: 'Very High' },
+    { name: 'Tesla (TSLA)',       rate: 20.0, risk: 'Very High' },
+  ];
 
   // ===== NUMBER FORMATTING =====
   function parseNum(val) {
@@ -32,6 +37,11 @@
 
   function fmtDec(n, digits) {
     return n.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
   }
 
   function formatMoneyInput(el) {
@@ -68,9 +78,11 @@
   vehicleSelect.addEventListener('change', () => {
     const key = vehicleSelect.value;
     if (key !== 'custom') {
-      expectedReturnEl.value = VEHICLE_RETURNS[key].rate;
+      expectedReturnEl.value = VEHICLE_RETURNS[key] ? VEHICLE_RETURNS[key].rate : 4.0;
       userEditedReturn = false;
     }
+    document.getElementById('customNameGroup').style.display =
+      key === 'custom' ? '' : 'none';
     calculate();
   });
 
@@ -81,9 +93,9 @@
 
   // ===== INPUT LISTENERS =====
   const inputIds = [
-    'homePrice', 'downPct', 'closingPct', 'reserveCushion',
+    'homePrice', 'downPct', 'closingPct', 'reserveCushion', 'mortgageRate',
     'monthsUntilPurchase', 'homeAppreciation',
-    'currentSavings', 'currentRent', 'futurePayment', 'currentMonthlySavings'
+    'currentSavings', 'currentRent', 'currentMonthlySavings', 'customName'
   ];
 
   inputIds.forEach(id => {
@@ -220,7 +232,10 @@
   function monthLabel(offset) {
     const d = new Date();
     d.setMonth(d.getMonth() + offset);
-    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const mon = d.toLocaleDateString('en-US', { month: 'short' });
+    const yr  = d.getFullYear();
+    // Format: "1, Apr 2026" where 1 = plan month number
+    return `${offset + 1}, ${mon} ${yr}`;
   }
 
   // ===== MAIN CALCULATE =====
@@ -230,16 +245,17 @@
     const downPct           = parseNum(document.getElementById('downPct').value);
     const closingPct        = parseNum(document.getElementById('closingPct').value);
     const reserveCushion    = parseNum(document.getElementById('reserveCushion').value);
+    const mortgageRate      = parseNum(document.getElementById('mortgageRate')?.value) / 100;
     const months            = Math.max(1, Math.round(parseNum(document.getElementById('monthsUntilPurchase').value)));
     const homeAppreciation  = parseNum(document.getElementById('homeAppreciation').value);
     const currentSavings    = parseNum(document.getElementById('currentSavings').value);
     const currentRent       = parseNum(document.getElementById('currentRent').value);
-    const futurePayment     = parseNum(document.getElementById('futurePayment').value);
     const currentMonthlySavings = parseNum(document.getElementById('currentMonthlySavings').value);
     const expectedReturn    = parseNum(document.getElementById('expectedReturn').value);
     const rampStyle         = getRampStyle();
     const vehicle           = vehicleSelect.value;
-    const vehicleLabel      = VEHICLE_RETURNS[vehicle] ? VEHICLE_RETURNS[vehicle].label : 'Custom';
+    const customNameVal     = document.getElementById('customName')?.value || 'My Investment';
+    const vehicleLabel      = vehicle === 'custom' ? customNameVal : (VEHICLE_RETURNS[vehicle] ? VEHICLE_RETURNS[vehicle].label : 'Custom');
 
     // --- Col 1 Computed ---
     const downPayment    = homePrice * (downPct / 100);
@@ -260,24 +276,34 @@
     document.getElementById('adjustedHomePrice').textContent  = fmt(adjustedHomePrice);
     document.getElementById('adjustedCashNeeded').textContent = fmt(adjustedCashNeeded);
 
+    // --- Compute Future P+I Payment ---
+    const loanAmount = homePrice - downPayment;
+    let futurePI = 0;
+    if (loanAmount > 0 && mortgageRate > 0) {
+      const r = mortgageRate / 12;
+      const n = 360;
+      futurePI = loanAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    }
+    setText('futurePayment', fmt(Math.round(futurePI)));
+
     // --- Col 3 Computed ---
-    const practiceGap = futurePayment - currentRent;
+    const practiceGap = futurePI - currentRent;
     document.getElementById('practiceGap').textContent = fmt(Math.abs(practiceGap)) + '/mo' + (practiceGap > 0 ? ' more' : ' less');
 
     // --- Coaching Bar ---
     const coachingText = document.getElementById('coachingText');
     if (practiceGap > 0) {
       coachingText.textContent =
-        `Your future housing payment is ${fmt(futurePayment)} and your current rent is ${fmt(currentRent)}. ` +
+        `Your future housing payment is ${fmt(futurePI)} and your current rent is ${fmt(currentRent)}. ` +
         `That means your practice-payment gap is ${fmt(practiceGap)}/month. ` +
         `If you can redirect that extra ${fmt(practiceGap)} into savings today, you'll be training for your new payment — and turbocharging your down payment fund.`;
     } else if (practiceGap < 0) {
       coachingText.textContent =
-        `Your expected payment of ${fmt(futurePayment)} is actually less than your current rent of ${fmt(currentRent)}. ` +
+        `Your expected payment of ${fmt(futurePI)} is actually less than your current rent of ${fmt(currentRent)}. ` +
         `That's a win — homeownership may cost you less per month! Focus on saving your down payment.`;
     } else {
       coachingText.textContent =
-        `Your expected payment matches your current rent exactly at ${fmt(futurePayment)}/month. ` +
+        `Your expected payment matches your current rent exactly at ${fmt(futurePI)}/month. ` +
         `Your monthly budget won't change — now focus on saving your down payment.`;
     }
 
@@ -340,7 +366,7 @@
       homePrice, adjustedHomePrice, downPct, downPayment: adjustedDown,
       closingPct, closingDollars: adjustedClosing, reserveCushion,
       adjustedCashNeeded, currentSavings, gap, months,
-      rampStyle, vehicleLabel, expectedReturn,
+      rampStyle, vehicleLabel, expectedReturn, homeAppreciation,
       projectedBalance, onTrack, surplus, targetDateStr,
       currentMonthlySavings, avgMonthlyNeeded, practiceGap
     });
@@ -411,41 +437,42 @@
 
     body.innerHTML = '';
 
-    const scenarios = SCENARIO_VEHICLES.map(key => {
-      const v = VEHICLE_RETURNS[key];
-      return { key, ...v };
-    });
+    // Build scenario list from the standard vehicles array
+    const selectedVehicleLabel = selectedVehicle === 'custom'
+      ? (document.getElementById('customName')?.value || 'My Investment')
+      : (VEHICLE_RETURNS[selectedVehicle] ? VEHICLE_RETURNS[selectedVehicle].label : 'Custom');
 
-    // Add selected custom vehicle if not already in list
-    if (!SCENARIO_VEHICLES.includes(selectedVehicle)) {
-      const v = VEHICLE_RETURNS[selectedVehicle] || { label: 'Custom', rate: selectedReturn, risk: 'Varies' };
-      scenarios.splice(0, 0, { key: selectedVehicle, ...v, rate: parseFloat(selectedReturn) || v.rate });
-    } else if (selectedVehicle === 'custom') {
-      // Replace rate with user-entered value
-      const idx = scenarios.findIndex(s => s.key === selectedVehicle);
-      if (idx >= 0) scenarios[idx].rate = parseFloat(selectedReturn) || 4.5;
+    // Build scenario rows: use standard list, mark the currently selected one with a star
+    // If user selected custom, add it at top with their custom name/rate
+    const scenarios = SCENARIO_VEHICLES.map(v => ({ ...v }));
+
+    // Determine which row is selected (match by label or add custom row)
+    let selectedIdx = -1;
+    if (selectedVehicle === 'custom') {
+      // Prepend custom row
+      scenarios.unshift({ name: selectedVehicleLabel, rate: parseFloat(selectedReturn) || 4.0, risk: 'Varies', isCustom: true });
+      selectedIdx = 0;
+    } else {
+      // Find matching standard vehicle by key
+      const vehicleLabel = VEHICLE_RETURNS[selectedVehicle] ? VEHICLE_RETURNS[selectedVehicle].label : null;
+      selectedIdx = scenarios.findIndex(s => s.name === vehicleLabel);
+      // Override rate with user's expected return for selected vehicle
+      if (selectedIdx >= 0) {
+        scenarios[selectedIdx] = { ...scenarios[selectedIdx], rate: parseFloat(selectedReturn) || scenarios[selectedIdx].rate };
+      }
     }
 
-    // For the selected vehicle, use user's expected return
-    const scenariosWithRate = scenarios.map(s => {
-      let rate = s.rate;
-      if (s.key === selectedVehicle && selectedReturn) {
-        rate = parseFloat(selectedReturn) || s.rate;
-      }
-      return { ...s, rate };
-    });
-
-    scenariosWithRate.forEach(s => {
+    scenarios.forEach((s, i) => {
       const schedule = buildSchedule(months, startBalance, targetCash, rampStyle, s.rate, 0);
       const projected = schedule.length ? schedule[schedule.length - 1].balance : startBalance;
       const hitsTarget = projected >= targetCash;
-      const isSelected = s.key === selectedVehicle;
+      const isSelected = i === selectedIdx;
 
       const row = document.createElement('tr');
       if (isSelected) row.style.background = 'rgba(56,189,248,0.08)';
 
       row.innerHTML = `
-        <td style="font-weight:${isSelected ? '600' : '400'}">${s.label}${isSelected ? ' ★' : ''}</td>
+        <td style="font-weight:${isSelected ? '600' : '400'}">${s.name}${isSelected ? ' ★' : ''}</td>
         <td>${fmtDec(s.rate, 1)}%</td>
         <td style="font-weight:600; color:${hitsTarget ? 'var(--color-positive,#34d399)' : 'var(--color-warning,#fbbf24)'}">${fmt(projected)}</td>
         <td style="color:${hitsTarget ? 'var(--color-positive,#34d399)' : 'var(--color-warning,#fbbf24)'}">${hitsTarget ? '✓ Yes' : '✗ Short ' + fmt(targetCash - projected)}</td>
@@ -499,17 +526,17 @@
     const downPct           = parseNum(document.getElementById('downPct').value);
     const closingPct        = parseNum(document.getElementById('closingPct').value);
     const reserveCushion    = parseNum(document.getElementById('reserveCushion').value);
+    const mortgageRatePDF   = parseNum(document.getElementById('mortgageRate')?.value) / 100;
     const months            = Math.max(1, Math.round(parseNum(document.getElementById('monthsUntilPurchase').value)));
     const homeAppreciation  = parseNum(document.getElementById('homeAppreciation').value);
     const currentSavings    = parseNum(document.getElementById('currentSavings').value);
     const currentRent       = parseNum(document.getElementById('currentRent').value);
-    const futurePayment     = parseNum(document.getElementById('futurePayment').value);
     const currentMonthlySavings = parseNum(document.getElementById('currentMonthlySavings').value);
     const expectedReturn    = parseNum(document.getElementById('expectedReturn').value);
     const rampStyle         = getRampStyle();
     const vehicle           = vehicleSelect.value;
-    const vehicleInfo       = VEHICLE_RETURNS[vehicle] || { label: 'Custom', risk: 'Varies' };
-    const vehicleLabel      = vehicleInfo.label;
+    const customNamePDF     = document.getElementById('customName')?.value || 'My Investment';
+    const vehicleLabel      = vehicle === 'custom' ? customNamePDF : (VEHICLE_RETURNS[vehicle] ? VEHICLE_RETURNS[vehicle].label : 'Custom');
 
     const yrs = months / 12;
     const adjustedHomePrice  = homePrice * Math.pow(1 + homeAppreciation / 100, yrs);
@@ -558,12 +585,20 @@
 
     // --- HEADER BAND ---
     rect(0, 0, 0, W, 70, DARK);
-    setFont(22, 'bold', WHITE);
-    doc.text('My Path to Homeownership', W / 2, 30, { align: 'center' });
+    try {
+      doc.addImage('./assets/fortified-logo-print.png', 'PNG', W/2 - 25, 8, 50, 9);
+    } catch(e) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255);
+      doc.text('FORTIFIED REALTY GROUP', W/2, 18, { align: 'center' });
+    }
+    setFont(18, 'bold', WHITE);
+    doc.text('My Path to Homeownership', W / 2, 35, { align: 'center' });
     setFont(10, 'normal', TEAL);
-    doc.text('A personal savings plan prepared by Fortified Realty Group', W / 2, 46, { align: 'center' });
+    doc.text('A personal savings plan prepared by Fortified Realty Group', W / 2, 49, { align: 'center' });
     setFont(9, 'normal', [176, 212, 230]);
-    doc.text(`Target: ${fmt(homePrice)} home by ${targetDateStr}`, W / 2, 60, { align: 'center' });
+    doc.text(`Target: ${fmt(homePrice)} home by ${targetDateStr}`, W / 2, 62, { align: 'center' });
     y = 85;
 
     // --- GOAL SUMMARY BOX ---
@@ -582,8 +617,12 @@
     function summaryRow(x, label, value, isLast) {
       setFont(8.5, 'normal', GRAY);
       doc.text(label, x, gy);
-      setFont(9, 'bold', DARK);
-      doc.text(value, x + 140, gy);
+      // Prevent value text overflow: reduce font size if text is long
+      const maxValueW = 70; // approximate pt width available
+      const valStr = String(value);
+      const fontSize = valStr.length > 22 ? 7 : 9;
+      setFont(fontSize, 'bold', DARK);
+      doc.text(valStr, x + 140, gy, { maxWidth: maxValueW });
       if (!isLast) {
         doc.setDrawColor(220, 228, 235);
         doc.line(x, gy + 3, x + 200, gy + 3);
@@ -647,7 +686,7 @@
       rect(0, boxX, actionY, boxW, 20, DARK, 3);
       setFont(9, 'bold', WHITE);
       doc.text(`Phase ${phase.phase}  |  Months ${phase.monthStart}–${phase.phaseEnd}  |  Save ${fmt(phase.savings)}/month`, boxX + 8, actionY + 13);
-      actionY += 24;
+      actionY += 27; // extra gap so first action line doesn't overlap phase header rect
 
       // Individual month lines
       for (let mo = phase.monthStart; mo <= phase.phaseEnd; mo++) {
@@ -682,7 +721,7 @@
     }
 
     // --- Risk Warning for volatile assets ---
-    if (['sp500', 'nasdaq', 'bitcoin'].includes(vehicle)) {
+    if (['sp500', 'nasdaq', 'bitcoin', 'tesla'].includes(vehicle)) {
       if (actionY + 40 > pageBottom) { doc.addPage(); actionY = margin + 10; }
       rect(0, boxX, actionY, boxW, 36, [255, 243, 205], 3);
       setFont(8, 'bold', [146, 64, 14]);
@@ -690,7 +729,9 @@
       setFont(7.5, 'normal', [120, 53, 15]);
       const riskText = vehicle === 'bitcoin'
         ? 'Bitcoin is highly volatile. Values can drop 50%+ in short periods. Only use this for long-term goals, not near-term home purchases.'
-        : `${vehicleLabel} investments fluctuate with market conditions. Past returns don't guarantee future results. Consider a stable vehicle like a HYSA for short timelines.`;
+        : vehicle === 'tesla'
+        ? 'Tesla (TSLA) is a single stock and highly volatile. Values can drop dramatically. Only consider this for long timelines with high risk tolerance.'
+        : `${vehicleLabel} investments fluctuate with market conditions. Past returns don't guarantee future results. Consider a stable vehicle like a Savings Account for short timelines.`;
       doc.text(riskText, boxX + 8, actionY + 24, { maxWidth: boxW - 16 });
       actionY += 46;
     }
@@ -720,13 +761,13 @@
     document.getElementById('downPct').value              = '5';
     document.getElementById('closingPct').value           = '3';
     document.getElementById('reserveCushion').value       = '$5,000';
+    document.getElementById('mortgageRate').value         = '6.5';
     document.getElementById('monthsUntilPurchase').value  = '24';
     document.getElementById('homeAppreciation').value     = '3';
     document.getElementById('currentSavings').value       = '$5,000';
     document.getElementById('currentRent').value          = '$1,500';
-    document.getElementById('futurePayment').value        = '$2,800';
     document.getElementById('currentMonthlySavings').value = '$300';
-    document.getElementById('expectedReturn').value       = '4.5';
+    document.getElementById('expectedReturn').value       = '4.0';
 
     // Reset ramp style to moderate
     document.querySelector('input[name="rampStyle"][value="moderate"]').checked = true;
@@ -734,7 +775,8 @@
     document.getElementById('card-moderate').style.borderColor = 'var(--color-accent)';
 
     // Reset vehicle
-    vehicleSelect.value = 'hysa';
+    vehicleSelect.value = 'savings';
+    document.getElementById('customNameGroup').style.display = 'none';
     userEditedReturn = false;
 
     calculate();
