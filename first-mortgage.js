@@ -584,22 +584,22 @@
     }
 
     // --- HEADER BAND ---
-    rect(0, 0, 0, W, 70, DARK);
+    rect(0, 0, 0, W, 75, DARK);
     try {
-      doc.addImage('./assets/fortified-logo-print.png', 'PNG', W/2 - 25, 8, 50, 9);
+      doc.addImage('./assets/fortified-logo-white.png', 'PNG', margin, 8, 65, 15);
     } catch(e) {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
+      doc.setFontSize(14);
       doc.setTextColor(255, 255, 255);
-      doc.text('FORTIFIED REALTY GROUP', W/2, 18, { align: 'center' });
+      doc.text('FORTIFIED REALTY GROUP', margin, 18);
     }
-    setFont(18, 'bold', WHITE);
-    doc.text('My Path to Homeownership', W / 2, 35, { align: 'center' });
+    setFont(20, 'bold', WHITE);
+    doc.text('My Path to Homeownership', W / 2, 38, { align: 'center' });
     setFont(10, 'normal', TEAL);
-    doc.text('A personal savings plan prepared by Fortified Realty Group', W / 2, 49, { align: 'center' });
+    doc.text('A personal savings plan prepared by Fortified Realty Group', W / 2, 52, { align: 'center' });
     setFont(9, 'normal', [176, 212, 230]);
-    doc.text(`Target: ${fmt(homePrice)} home by ${targetDateStr}`, W / 2, 62, { align: 'center' });
-    y = 85;
+    doc.text(`Target: ${fmt(homePrice)} home by ${targetDateStr}`, W / 2, 64, { align: 'center' });
+    y = 90;
 
     // --- GOAL SUMMARY BOX ---
     const boxX = margin;
