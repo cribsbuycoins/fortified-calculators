@@ -234,8 +234,7 @@
     d.setMonth(d.getMonth() + offset);
     const mon = d.toLocaleDateString('en-US', { month: 'short' });
     const yr  = d.getFullYear();
-    // Format: "1, Apr 2026" where 1 = plan month number
-    return `${offset + 1}, ${mon} ${yr}`;
+    return `${mon} ${yr}`;
   }
 
   // ===== MAIN CALCULATE =====
@@ -277,12 +276,13 @@
     document.getElementById('adjustedCashNeeded').textContent = fmt(adjustedCashNeeded);
 
     // --- Compute Future P+I Payment ---
-    const loanAmount = homePrice - downPayment;
+    // Future payment based on ADJUSTED home price (what they'll actually pay)
+    const adjustedLoanAmount = adjustedHomePrice - adjustedDown;
     let futurePI = 0;
-    if (loanAmount > 0 && mortgageRate > 0) {
+    if (adjustedLoanAmount > 0 && mortgageRate > 0) {
       const r = mortgageRate / 12;
       const n = 360;
-      futurePI = loanAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+      futurePI = adjustedLoanAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     }
     setText('futurePayment', fmt(Math.round(futurePI)));
 
@@ -686,7 +686,7 @@
       rect(0, boxX, actionY, boxW, 20, DARK, 3);
       setFont(9, 'bold', WHITE);
       doc.text(`Phase ${phase.phase}  |  Months ${phase.monthStart}–${phase.phaseEnd}  |  Save ${fmt(phase.savings)}/month`, boxX + 8, actionY + 13);
-      actionY += 27; // extra gap so first action line doesn't overlap phase header rect
+      actionY += 30; // gap below phase header before first checkbox line
 
       // Individual month lines
       for (let mo = phase.monthStart; mo <= phase.phaseEnd; mo++) {
@@ -696,8 +696,12 @@
         }
         const monthStr = monthLabel(mo - 1);
         setFont(9, 'normal', DARK);
-        doc.text('\u2610', boxX + 4, actionY + 1); // ☐ checkbox
-        doc.text(`${monthStr}  —  Deposit ${fmt(phase.savings)} into your ${vehicleLabel}`, boxX + 16, actionY + 1);
+        // Draw a checkbox square
+        doc.setDrawColor(0, 52, 77);
+        doc.setLineWidth(0.4);
+        doc.setFillColor(255, 255, 255);
+        doc.rect(boxX + 4, actionY - 5, 5, 5, 'FD');
+        doc.text(`${monthStr}  —  Deposit ${fmt(phase.savings)} into your ${vehicleLabel}`, boxX + 14, actionY + 1);
         actionY += 15;
       }
 
