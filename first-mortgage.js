@@ -309,6 +309,9 @@
         `Your monthly budget won't change — now focus on saving your down payment.`;
     }
 
+    // --- Savings Coaching Blurb (under Current Monthly Savings) ---
+    const savingsBlurb = document.getElementById('savingsCoachingBlurb');
+
     // --- Build Ramp Schedule ---
     const schedule = buildSchedule(months, currentSavings, adjustedCashNeeded, rampStyle, expectedReturn, currentMonthlySavings);
     const projectedBalance = schedule.length ? schedule[schedule.length - 1].balance : currentSavings;
@@ -316,6 +319,22 @@
 
     // Average monthly savings needed (simple, not compound-adjusted)
     const avgMonthlyNeeded = months > 0 ? gap / months : 0;
+
+    // Update the savings coaching blurb
+    if (savingsBlurb) {
+      if (currentMonthlySavings > 0 && avgMonthlyNeeded > 0) {
+        const additional = Math.max(0, Math.round(avgMonthlyNeeded) - currentMonthlySavings);
+        if (additional > 0) {
+          savingsBlurb.innerHTML = `<strong>You're already saving ${fmt(currentMonthlySavings)}/month.</strong> To hit your goal, you need about ${fmt(Math.round(avgMonthlyNeeded))}/month total — that's only <strong>${fmt(additional)}/month more</strong>. The schedule below shows the additional amount on top of what you're already doing.`;
+        } else {
+          savingsBlurb.innerHTML = `<strong>Great news!</strong> You're already saving ${fmt(currentMonthlySavings)}/month, which is more than the ${fmt(Math.round(avgMonthlyNeeded))}/month you need. Stay the course and you'll get there ahead of schedule.`;
+        }
+      } else if (currentMonthlySavings > 0) {
+        savingsBlurb.innerHTML = `You're saving ${fmt(currentMonthlySavings)}/month. The schedule below builds on this.`;
+      } else {
+        savingsBlurb.innerHTML = 'Not saving yet? No worries — the schedule below shows exactly how to start.';
+      }
+    }
 
     // On-track based on current pace (flat, no growth)
     const projectedAtCurrentPace = projectBalance(months, currentSavings, currentMonthlySavings, expectedReturn);
@@ -358,7 +377,7 @@
 
     // --- Ramp-Up Schedule Table ---
     const phases = summarizeByPhase(schedule, months);
-    renderScheduleTable(phases, adjustedCashNeeded);
+    renderScheduleTable(phases, adjustedCashNeeded, currentMonthlySavings);
 
     // --- Scenario Comparison ---
     renderScenarioTable(months, currentSavings, adjustedCashNeeded, rampStyle, vehicle, expectedReturn);
@@ -375,15 +394,16 @@
   }
 
   // ===== RENDER SCHEDULE TABLE =====
-  function renderScheduleTable(phases, targetCash) {
+  function renderScheduleTable(phases, targetCash, currentMonthlySavings) {
     const head = document.getElementById('scheduleHead');
     const body = document.getElementById('scheduleBody');
+    const cms = currentMonthlySavings || 0;
 
     head.innerHTML = `<tr>
       <th>Phase</th>
       <th>Months</th>
-      <th>Save / Month</th>
-      <th>Phase Total</th>
+      <th>Total / Month</th>
+      ${cms > 0 ? '<th>Already Saving</th><th>Additional</th>' : ''}
       <th>Projected Balance</th>
       <th>vs. Target</th>
     </tr>`;
@@ -395,6 +415,7 @@
       const diffStr = diff >= 0
         ? `<span style="color:var(--color-positive,#34d399)">+${fmt(diff)}</span>`
         : `<span style="color:var(--color-warning,#fbbf24)">${fmt(diff)}</span>`;
+      const additional = Math.max(0, p.savings - cms);
 
       const row = document.createElement('tr');
       if (isLast) row.style.fontWeight = '600';
@@ -402,7 +423,7 @@
         <td>Phase ${p.phase}</td>
         <td>${p.monthStart}–${p.monthEnd}</td>
         <td>${fmt(p.savings)}</td>
-        <td>${fmt(p.phaseTotal)}</td>
+        ${cms > 0 ? `<td>${fmt(cms)}</td><td style="color:var(--color-accent); font-weight:600;">${fmt(additional)}</td>` : ''}
         <td>${fmt(p.endBalance)}</td>
         <td>${diffStr}</td>
       `;
@@ -598,7 +619,7 @@
     // --- HEADER BAND ---
     rect(0, 0, 0, W, 75, DARK);
     try {
-      doc.addImage('./assets/fortified-logo-white.png', 'PNG', margin, 10, 120, 27);
+      doc.addImage('./assets/fortified-logo-white.png', 'PNG', margin, 14, 110, 25);
     } catch(e) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
@@ -606,11 +627,11 @@
       doc.text('FORTIFIED REALTY GROUP', margin, 18);
     }
     setFont(20, 'bold', WHITE);
-    doc.text('My Path to Homeownership', W / 2, 48, { align: 'center' });
+    doc.text('My Path to Homeownership', W / 2, 42, { align: 'center' });
     setFont(10, 'normal', TEAL);
-    doc.text('A personal savings plan prepared by Fortified Realty Group', W / 2, 60, { align: 'center' });
+    doc.text('A personal savings plan prepared by Fortified Realty Group', W / 2, 54, { align: 'center' });
     setFont(9, 'normal', [176, 212, 230]);
-    doc.text(`Target: ${fmt(homePrice)} home by ${targetDateStr}`, W / 2, 70, { align: 'center' });
+    doc.text(`Target: ${fmt(adjustedHomePrice)} home by ${targetDateStr}`, W / 2, 65, { align: 'center' });
     y = 90;
 
     // --- GOAL SUMMARY BOX ---
@@ -642,7 +663,7 @@
     }
 
     const leftRows = [
-      ['Target Home Price', fmt(homePrice)],
+      ['Target Home Price (Today)', fmt(homePrice)],
       ['Adjusted Price (by ' + targetDateStr + ')', fmt(adjustedHomePrice)],
       ['Down Payment (' + downPct + '%)', fmt(adjustedDown)],
       ['Closing Costs (' + closingPct + '%)', fmt(adjustedClosing)],
@@ -738,7 +759,11 @@
         doc.setLineWidth(0.4);
         doc.setFillColor(255, 255, 255);
         doc.rect(boxX + 4, actionY - 5, 5, 5, 'FD');
-        doc.text(`${monthStr}  —  Deposit ${fmt(phase.savings)} into your ${vehicleLabel}`, boxX + 14, actionY + 1);
+        const addl = Math.max(0, phase.savings - currentMonthlySavings);
+        const depositText = currentMonthlySavings > 0 && addl < phase.savings
+          ? `${monthStr}  —  Save ${fmt(phase.savings)} total (${fmt(currentMonthlySavings)} existing + ${fmt(addl)} additional) into your ${vehicleLabel}`
+          : `${monthStr}  —  Deposit ${fmt(phase.savings)} into your ${vehicleLabel}`;
+        doc.text(depositText, boxX + 14, actionY + 1);
         actionY += 15;
       }
 
