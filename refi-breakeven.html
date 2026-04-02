@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>True Cost of Your Refi — Fortified Realty Group</title>
+  <meta name="description" content="Free Refinance Break-Even Calculator. See the real break-even — not just the payment savings, but the hidden cost of resetting your amortization. Fortified Realty Group, One North Main Street, Fall River, MA 02720.">
+  <meta name="theme-color" content="#00344D">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./base.css">
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="./index.html" class="logo-link">
+        <img src="./assets/fortified-logo-white.png" alt="Fortified Realty Group" height="36">
+        <span class="logo-text">Real Estate Calculators</span>
+      </a>
+      <a href="./index.html" class="nav-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        All Tools
+      </a>
+    </div>
+  </header>
+
+  <main class="calc-page" id="calcContent">
+
+    <div class="calc-title-area">
+      <h1>True Cost of Your Refi</h1>
+      <p>See the real break-even — not just the payment savings, but the hidden cost of resetting your amortization.</p>
+    </div>
+
+    <div class="calc-address">
+      <label for="address">Property Address</label>
+      <input type="text" id="address" placeholder="123 Main St, Fall River, MA 02720">
+    </div>
+
+    <!-- THREE COLUMN INPUTS -->
+    <div class="calc-sections">
+
+      <!-- CURRENT LOAN -->
+      <div class="input-section">
+        <div class="section-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <h2>Current Loan</h2>
+        </div>
+        <div class="section-body">
+          <div class="input-row">
+            <label for="currentBalance">Current Balance</label>
+            <input type="text" id="currentBalance" value="$350,000" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="currentRate">Current Interest Rate (%)</label>
+            <input type="text" id="currentRate" value="6.5" inputmode="decimal" class="pct-input">
+          </div>
+          <div class="input-row">
+            <label for="remainingTerm">Remaining Term (months)</label>
+            <input type="text" id="remainingTerm" value="300" inputmode="numeric">
+          </div>
+          <div class="computed-row">
+            <label>Current Monthly P+I</label>
+            <span class="computed-value" id="currentPIComputed">—</span>
+          </div>
+          <div class="input-row">
+            <label for="currentPMI">Current PMI ($/mo)</label>
+            <input type="text" id="currentPMI" value="$0" inputmode="numeric" class="money-input">
+          </div>
+        </div>
+        <div class="section-total">
+          <label>Current Total Payment</label>
+          <span class="total-value" id="currentTotalPayment">—</span>
+        </div>
+      </div>
+
+      <!-- NEW LOAN -->
+      <div class="input-section">
+        <div class="section-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          <h2>New Loan</h2>
+        </div>
+        <div class="section-body">
+          <div class="input-row">
+            <label for="newRate">New Interest Rate (%)</label>
+            <input type="text" id="newRate" value="5.5" inputmode="decimal" class="pct-input">
+          </div>
+          <div class="input-row">
+            <label for="newTerm">New Loan Term (months)</label>
+            <input type="text" id="newTerm" value="360" inputmode="numeric">
+          </div>
+          <div class="input-row">
+            <label for="newPMI">New PMI ($/mo)</label>
+            <input type="text" id="newPMI" value="$0" inputmode="numeric" class="money-input">
+          </div>
+          <div class="computed-row">
+            <label>New Monthly P+I</label>
+            <span class="computed-value" id="newPIComputed">—</span>
+          </div>
+          <div class="computed-row">
+            <label>New Loan Amount</label>
+            <span class="computed-value" id="newLoanAmount">—</span>
+          </div>
+        </div>
+        <div class="section-total">
+          <label>New Total Payment</label>
+          <span class="total-value" id="newTotalPayment">—</span>
+        </div>
+      </div>
+
+      <!-- TRANSACTION & HOLDING -->
+      <div class="input-section">
+        <div class="section-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          <h2>Transaction &amp; Holding</h2>
+        </div>
+        <div class="section-body">
+          <div class="input-row">
+            <label for="closingCosts">Closing Costs</label>
+            <input type="text" id="closingCosts" value="$8,000" inputmode="numeric" class="money-input">
+          </div>
+          <div class="input-row">
+            <label for="financeClosing">Finance Closing Costs?</label>
+            <label style="display:flex; align-items:center; gap:6px; font-size:var(--text-sm); color:var(--color-text-muted); justify-content:flex-end;">
+              <input type="checkbox" id="financeClosing" style="width:16px; height:16px; accent-color:#38bdf8; cursor:pointer;">
+              Roll into new loan
+            </label>
+          </div>
+          <div class="input-row">
+            <label for="holdingYears">Expected Holding Period (yrs)</label>
+            <input type="text" id="holdingYears" value="7" inputmode="decimal">
+          </div>
+          <hr class="section-divider">
+          <div class="computed-row">
+            <label>Monthly Payment Savings</label>
+            <span class="computed-value" id="monthlySavings">—</span>
+          </div>
+          <div class="computed-row">
+            <label>Standard Break-Even</label>
+            <span class="computed-value" id="standardBreakEven">—</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VERDICT -->
+    <section class="deal-summary" id="verdictSection">
+      <h3 id="verdictTitle">THE VERDICT</h3>
+      <p id="verdictText">Enter your loan details above.</p>
+    </section>
+
+    <!-- COMPARISON RESULTS -->
+    <section class="results-section" id="resultsSection">
+      <div class="results-header">
+        <h2>Comparison Results</h2>
+      </div>
+      <div class="results-grid">
+        <div class="result-card">
+          <div class="result-label">Monthly Savings</div>
+          <div class="result-value" id="resultMonthlySavings">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">Standard Break-Even</div>
+          <div class="result-value" id="resultStandardBE">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">True Break-Even</div>
+          <div class="result-value" id="resultTrueBreakEven">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">Net Savings at Hold Period</div>
+          <div class="result-value" id="resultNetSavings">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HIDDEN COST EXPLANATION -->
+    <section class="deal-summary" id="explanationSection" style="border-left-color: var(--color-accent);">
+      <h3>Why the True Break-Even Is Different</h3>
+      <p id="explanationText">The numbers will appear here once you enter your loan details.</p>
+    </section>
+
+    <!-- MILESTONE TABLE -->
+    <section class="range-section" id="milestoneSection">
+      <h2>Year-by-Year Comparison</h2>
+      <div class="range-table-wrap">
+        <table class="range-table" id="milestoneTable">
+          <thead id="milestoneHead"></thead>
+          <tbody id="milestoneBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- DEAL SUMMARY -->
+    <section class="deal-summary" id="dealSummary">
+      <h3>Deal Summary</h3>
+      <p id="dealSummaryText">Enter your numbers above to see a plain English analysis.</p>
+    </section>
+
+    <!-- ACTIONS -->
+    <div class="actions-bar">
+      <button class="btn btn-primary" id="savePdfBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        Save as PDF
+      </button>
+      <button class="btn btn-outline" id="resetBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Reset
+      </button>
+    </div>
+
+  </main>
+
+  <footer class="contact-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="./assets/fortified-logo-white.png" alt="Fortified Realty Group" height="24">
+        <div class="footer-text">
+          <strong>Fortified Realty Group, LLC</strong><br>
+          One North Main Street, Fall River, MA 02720
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="tel:+15086918035" class="footer-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          (508) 691-8035
+        </a>
+        <a href="https://fortifiedrealty.net" class="footer-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          fortifiedrealty.net
+        </a>
+        <a href="https://g.page/r/CbFCYN2LnvC7EAE/review" class="footer-link review-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Leave a Review
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+  <script src="./refi-breakeven.js"></script>
+</body>
+</html>
