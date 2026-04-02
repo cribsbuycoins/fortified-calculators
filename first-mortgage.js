@@ -544,6 +544,16 @@
     const adjustedClosing    = adjustedHomePrice * (closingPct / 100);
     const adjustedCashNeeded = adjustedDown + adjustedClosing + reserveCushion;
     const gap                = Math.max(0, adjustedCashNeeded - currentSavings);
+
+    // Compute future P+I for the PDF rent vs payment display
+    const mortgageRate = parseNum(document.getElementById('mortgageRate')?.value) / 100;
+    const adjustedLoanAmount = adjustedHomePrice - adjustedDown;
+    let futurePI = 0;
+    if (adjustedLoanAmount > 0 && mortgageRate > 0) {
+      const r = mortgageRate / 12;
+      const n = 360;
+      futurePI = adjustedLoanAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    }
     const targetDateStr      = monthsFromNow(months);
     const styleLabel         = { aggressive: 'Aggressive', moderate: 'Moderate', passive: 'Passive' };
 
@@ -650,15 +660,41 @@
 
     y += 172;
 
-    // --- PROJECTED OUTCOME BADGE ---
-    const badgeColor = onTrack ? GREEN : AMBER;
-    rect(0, boxX, y, boxW, 36, badgeColor, 4);
-    setFont(11, 'bold', WHITE);
+    // --- RENT vs FUTURE PAYMENT (big, prominent) ---
+    const rentFutureY = y;
+    const halfW = (boxW - 10) / 2;
+
+    // Current Rent box
+    rect(0, boxX, rentFutureY, halfW, 30, [245, 247, 250], 3);
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(boxX, rentFutureY, halfW, 30, 3, 3, 'S');
+    setFont(8, 'normal', GRAY);
+    doc.text('CURRENT RENT', boxX + halfW / 2, rentFutureY + 10, { align: 'center' });
+    setFont(16, 'bold', DARK);
+    doc.text(fmt(currentRent) + '/mo', boxX + halfW / 2, rentFutureY + 24, { align: 'center' });
+
+    // Future Payment box
+    rect(0, boxX + halfW + 10, rentFutureY, halfW, 30, [245, 247, 250], 3);
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(boxX + halfW + 10, rentFutureY, halfW, 30, 3, 3, 'S');
+    setFont(8, 'normal', GRAY);
+    doc.text('FUTURE MORTGAGE PAYMENT', boxX + halfW + 10 + halfW / 2, rentFutureY + 10, { align: 'center' });
+    setFont(16, 'bold', DARK);
+    doc.text(fmt(Math.round(futurePI)) + '/mo', boxX + halfW + 10 + halfW / 2, rentFutureY + 24, { align: 'center' });
+
+    y = rentFutureY + 38;
+
+    // --- PROJECTED OUTCOME LINE ---
+    const badgeColor = onTrack ? GREEN : [200, 80, 30];
+    setFont(10, 'bold', badgeColor);
     const outcomeText = onTrack
-      ? `✓  Projected to reach ${fmt(projectedBalance)} by ${targetDateStr} — ${fmt(projectedBalance - adjustedCashNeeded)} ahead of goal`
-      : `⚠  Projected ${fmt(projectedBalance)} by ${targetDateStr} — ${fmt(adjustedCashNeeded - projectedBalance)} short`;
-    doc.text(outcomeText, W / 2, y + 23, { align: 'center' });
-    y += 50;
+      ? `Projected to reach ${fmt(projectedBalance)} by ${targetDateStr} — ${fmt(projectedBalance - adjustedCashNeeded)} ahead of goal`
+      : `Projected ${fmt(projectedBalance)} by ${targetDateStr} — ${fmt(adjustedCashNeeded - projectedBalance)} short`;
+    const checkmark = onTrack ? '✓ ' : '⚠ ';
+    doc.text(checkmark + outcomeText, W / 2, y + 4, { align: 'center' });
+    y += 14;
 
     // --- ACTION PLAN HEADER ---
     setFont(13, 'bold', DARK);
