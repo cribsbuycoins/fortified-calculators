@@ -282,13 +282,7 @@
       bodyHtml += '</tr>';
     });
 
-    // Net Cash In Deal footer row
-    bodyHtml += '<tr class="results-row">';
-    bodyHtml += '<td style="font-weight:700;">Net Cash In Deal</td>';
-    summaryData.forEach(d => {
-      bodyHtml += `<td style="font-weight:700;">${fmt(Math.round(d.netCashInDeal))}</td>`;
-    });
-    bodyHtml += '</tr>';
+    // Net Cash In Deal row removed — already shown in Summaries table
 
     tbody.innerHTML = bodyHtml;
   }
