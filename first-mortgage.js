@@ -641,22 +641,23 @@
     }
 
     // --- HEADER BAND ---
-    rect(0, 0, 0, W, 75, DARK);
+    rect(0, 0, 0, W, 90, DARK);
     try {
-      doc.addImage('./assets/fortified-logo-white.png', 'PNG', margin, 14, 110, 25);
+      // Logo: 500x115 aspect ratio = 4.35:1. At 150pt wide -> ~34pt tall. Centered vertically in top portion.
+      doc.addImage('./assets/fortified-logo-white.png', 'PNG', margin, 8, 150, 34);
     } catch(e) {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
+      doc.setFontSize(16);
       doc.setTextColor(255, 255, 255);
-      doc.text('FORTIFIED REALTY GROUP', margin, 18);
+      doc.text('FORTIFIED REALTY GROUP', margin, 28);
     }
     setFont(20, 'bold', WHITE);
-    doc.text('My Path to Homeownership', W / 2, 42, { align: 'center' });
+    doc.text('My Path to Homeownership', W / 2, 55, { align: 'center' });
     setFont(10, 'normal', TEAL);
-    doc.text('A personal savings plan prepared by Fortified Realty Group', W / 2, 54, { align: 'center' });
+    doc.text('A personal savings plan prepared by Fortified Realty Group', W / 2, 68, { align: 'center' });
     setFont(9, 'normal', [176, 212, 230]);
-    doc.text(`Target: ${fmt(adjustedHomePrice)} home by ${targetDateStr}`, W / 2, 65, { align: 'center' });
-    y = 90;
+    doc.text(`Target: ${fmt(adjustedHomePrice)} home by ${targetDateStr}`, W / 2, 80, { align: 'center' });
+    y = 100;
 
     // --- GOAL SUMMARY BOX ---
     const boxX = margin;
