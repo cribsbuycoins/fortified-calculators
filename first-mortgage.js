@@ -122,7 +122,7 @@
    * Build a month-by-month savings schedule using ramp-up style.
    * Returns array of { month, savings, cumulative, balance } objects.
    */
-  function buildSchedule(months, startBalance, targetCash, rampStyle, annualReturn, startingSavings) {
+  function buildSchedule(months, startBalance, targetCash, rampStyle, annualReturn, startingSavings, practiceGapAmount) {
     const monthlyRate = annualReturn / 100 / 12;
     const numPhases = Math.ceil(months / 3);
     if (numPhases === 0 || months === 0) return [];
@@ -157,14 +157,15 @@
       return bal;
     }
 
-    // Binary search for the right base amount
-    let lo = 0, hi = targetCash;
-    for (let i = 0; i < 50; i++) {
+    // Binary search for the right base amount — always meet or exceed target
+    let lo = 0, hi = targetCash * 2;
+    for (let i = 0; i < 80; i++) {
       const mid = (lo + hi) / 2;
       if (simulate(mid) < targetCash) lo = mid;
       else hi = mid;
     }
-    const baseSavings = (lo + hi) / 2;
+    // Use the high end to ensure we always meet the target (never short)
+    const baseSavings = hi;
 
     // Build the final schedule with the solved base
     const schedule = [];
@@ -327,11 +328,11 @@
     const savingsBlurb = document.getElementById('savingsCoachingBlurb');
 
     // --- Build Ramp Schedule ---
-    const schedule = buildSchedule(months, currentSavings, adjustedCashNeeded, rampStyle, expectedReturn, currentMonthlySavings);
+    const schedule = buildSchedule(months, currentSavings, adjustedCashNeeded, rampStyle, expectedReturn, currentMonthlySavings, practiceGap);
     const projectedBalance = schedule.length ? schedule[schedule.length - 1].balance : currentSavings;
     const gap = Math.max(0, adjustedCashNeeded - currentSavings);
 
-    // Average monthly savings from the actual schedule (not a simple gap/months guess)
+    // Average monthly savings from the actual schedule
     const totalScheduledSavings = schedule.reduce((sum, s) => sum + s.savings, 0);
     const avgMonthlyNeeded = schedule.length > 0 ? Math.round(totalScheduledSavings / schedule.length) : 0;
 
@@ -395,7 +396,7 @@
     renderScheduleTable(phases, adjustedCashNeeded, currentMonthlySavings);
 
     // --- Scenario Comparison ---
-    renderScenarioTable(months, currentSavings, adjustedCashNeeded, rampStyle, vehicle, expectedReturn);
+    renderScenarioTable(months, currentSavings, adjustedCashNeeded, rampStyle, vehicle, expectedReturn, schedule);
 
     // --- Deal Summary ---
     renderDealSummary({
@@ -461,7 +462,7 @@
   }
 
   // ===== RENDER SCENARIO TABLE =====
-  function renderScenarioTable(months, startBalance, targetCash, rampStyle, selectedVehicle, selectedReturn) {
+  function renderScenarioTable(months, startBalance, targetCash, rampStyle, selectedVehicle, selectedReturn, currentSchedule) {
     const head = document.getElementById('scenarioHead');
     const body = document.getElementById('scenarioBody');
 
@@ -501,8 +502,15 @@
     }
 
     scenarios.forEach((s, i) => {
-      const schedule = buildSchedule(months, startBalance, targetCash, rampStyle, s.rate, 0);
-      const projected = schedule.length ? schedule[schedule.length - 1].balance : startBalance;
+      // Use the SAME savings amounts from the current schedule, just different return rate
+      const monthlyRate = s.rate / 100 / 12;
+      let projected = startBalance;
+      if (currentSchedule && currentSchedule.length) {
+        for (let m = 0; m < currentSchedule.length; m++) {
+          projected = projected * (1 + monthlyRate) + currentSchedule[m].savings;
+        }
+      }
+      projected = Math.round(projected);
       const hitsTarget = projected >= targetCash;
       const isSelected = i === selectedIdx;
 
@@ -595,7 +603,8 @@
     const targetDateStr      = monthsFromNow(months);
     const styleLabel         = { aggressive: 'Aggressive', moderate: 'Moderate', passive: 'Passive' };
 
-    const schedule = buildSchedule(months, currentSavings, adjustedCashNeeded, rampStyle, expectedReturn, currentMonthlySavings);
+    const pdfPracticeGap = futurePI - currentRent;
+    const schedule = buildSchedule(months, currentSavings, adjustedCashNeeded, rampStyle, expectedReturn, currentMonthlySavings, pdfPracticeGap);
     const projectedBalance = schedule.length ? schedule[schedule.length - 1].balance : currentSavings;
     const onTrack = projectedBalance >= adjustedCashNeeded;
     const phases = summarizeByPhase(schedule, months);
