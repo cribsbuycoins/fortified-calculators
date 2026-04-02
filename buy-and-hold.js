@@ -178,6 +178,13 @@
     setResult('cashOnCash', fmtPct(cashOnCash), cashOnCash - 8);
 
     buildRangeTable(totalMonthlyIncome, totalMonthlyExpenses, ltvPct, interestRate, closingCostPct, loanMonths);
+    generateDealSummary({
+      monthlyCashFlow, dscr, capRate, cashOnCash,
+      totalMonthlyIncome, totalMonthlyExpenses, monthlyPI,
+      listPrice, totalCashToClose,
+      vacancyPct: parseNum(document.getElementById('vacancyPct')?.value),
+      managementPct: parseNum(document.getElementById('managementPct')?.value)
+    });
   }
 
   function setText(id, val) {
@@ -303,6 +310,98 @@
     if (value >= threshold) return 'cond-green';
     if (value >= threshold * 0.8) return 'cond-yellow';
     return 'cond-red';
+  }
+
+  // ===== DEAL SUMMARY =====
+  function generateDealSummary({ monthlyCashFlow, dscr, capRate, cashOnCash, totalMonthlyIncome, totalMonthlyExpenses, monthlyPI, listPrice, totalCashToClose, vacancyPct, managementPct }) {
+    const summaryEl = document.getElementById('dealSummary');
+    const textEl = document.getElementById('dealSummaryText');
+    if (!summaryEl || !textEl) return;
+
+    // Determine scoring tier
+    const isStrong = monthlyCashFlow > 0 && dscr >= 1.25 && capRate >= 7 && cashOnCash >= 10;
+    const isDecent = !isStrong && monthlyCashFlow > 0 && dscr >= 1.0 && capRate >= 5;
+    const isBad = monthlyCashFlow <= 0 || dscr < 1.0;
+
+    // Read buying range data to find break-even and highest profitable price
+    const rangeTable = document.getElementById('rangeTable');
+    let breakEvenPrice = null;
+    let highestProfitablePrice = null;
+    let lowestOfferVal = parseNum(document.getElementById('lowestOffer')?.value);
+    let allRangeNegative = true;
+
+    if (rangeTable && rangeTable.rows.length > 1) {
+      const headRow = rangeTable.querySelector('thead tr');
+      const priceHeaders = headRow ? Array.from(headRow.querySelectorAll('th')).slice(1).map(th => parseNum(th.textContent)) : [];
+      const cashFlowRow = Array.from(rangeTable.querySelectorAll('tbody tr')).find(tr => tr.cells[0]?.textContent.trim() === 'Monthly Cash Flow');
+      if (cashFlowRow && priceHeaders.length) {
+        const cfCells = Array.from(cashFlowRow.querySelectorAll('td')).slice(1);
+        cfCells.forEach((td, i) => {
+          const cfVal = parseNum(td.textContent);
+          if (cfVal > 0) {
+            allRangeNegative = false;
+            highestProfitablePrice = priceHeaders[i];
+          } else if (cfVal <= 0 && breakEvenPrice === null && highestProfitablePrice !== null) {
+            breakEvenPrice = priceHeaders[i - 1] || highestProfitablePrice;
+          }
+        });
+        // If first column is already negative, breakEvenPrice stays null
+        if (allRangeNegative) {
+          breakEvenPrice = null;
+          highestProfitablePrice = null;
+        } else if (breakEvenPrice === null && highestProfitablePrice !== null) {
+          // All columns are profitable
+          breakEvenPrice = highestProfitablePrice;
+        }
+      }
+    }
+
+    const sentences = [];
+
+    if (isStrong) {
+      sentences.push(`At the list price of ${fmt(listPrice)}, this property generates ${fmt(Math.round(monthlyCashFlow))}/month in cash flow with a ${capRate.toFixed(2)}% cap rate and ${cashOnCash.toFixed(2)}% cash-on-cash return.`);
+      sentences.push(`The debt service coverage ratio of ${dscr.toFixed(2)}x gives you solid cushion above the 1.25x lender threshold.`);
+      if (highestProfitablePrice !== null) {
+        sentences.push(`Looking across the buying range, the deal stays cash flow positive all the way up to ${fmt(highestProfitablePrice)}.`);
+      }
+      sentences.push(`Double check your rent assumptions and expense estimates — if these numbers hold, this looks like a solid buy and hold.`);
+    } else if (isDecent) {
+      sentences.push(`At ${fmt(listPrice)}, you\'re looking at ${fmt(Math.round(monthlyCashFlow))}/month in cash flow, but the margins are tight.`);
+      sentences.push(`Your DSCR of ${dscr.toFixed(2)}x is close to the 1.25x threshold most lenders want to see — not much room for error.`);
+      if (capRate < 7) {
+        sentences.push(`The ${capRate.toFixed(2)}% cap rate is below the 7% benchmark. This deal leans on your financing terms more than the property\'s income.`);
+      }
+      if (breakEvenPrice !== null) {
+        sentences.push(`In the buying range, the deal starts to go negative above ${fmt(breakEvenPrice)}. You\'d want to come in closer to ${fmt(lowestOfferVal)} to build in some safety margin.`);
+      }
+    } else {
+      // Bad deal
+      sentences.push(`At the list price of ${fmt(listPrice)}, this deal shows negative cash flow of ${fmt(Math.round(monthlyCashFlow))}/month. The numbers don\'t work at this price.`);
+      if (dscr < 1.0) {
+        sentences.push(`Your DSCR is ${dscr.toFixed(2)}x — below 1.0 means the property\'s income doesn\'t cover the debt service.`);
+      }
+      if (!allRangeNegative && breakEvenPrice !== null) {
+        sentences.push(`Looking at the range, you\'d need to get this closer to ${fmt(breakEvenPrice)} before the numbers start working.`);
+      } else {
+        sentences.push(`Even at the lowest offer of ${fmt(lowestOfferVal)}, cash flow is still negative. The income doesn\'t support any purchase price in this range given your financing terms.`);
+      }
+    }
+
+    // Additional smart observations
+    const totalVacMgmt = vacancyPct + managementPct;
+    if (totalVacMgmt > 25) {
+      sentences.push(`Note: your vacancy and management assumptions total ${totalVacMgmt}% — that\'s conservative, which is good for underwriting but may understate actual performance.`);
+    }
+    if (cashOnCash > 30) {
+      sentences.push(`A ${cashOnCash.toFixed(2)}% cash-on-cash return is unusually strong — make sure your rent estimates are realistic and not overstated.`);
+    }
+    if (totalCashToClose > 0 && totalCashToClose < 20000) {
+      sentences.push(`With only ${fmt(Math.round(totalCashToClose))} out of pocket, you\'re getting in light. That\'s great for returns but leaves less equity cushion.`);
+    }
+
+    // Set class and text
+    summaryEl.className = 'deal-summary ' + (isStrong ? 'positive' : isBad ? 'negative' : 'caution');
+    textEl.innerHTML = sentences.join(' ');
   }
 
   // ===== EVENT LISTENERS =====
@@ -547,7 +646,7 @@
           lineColor: [200, 200, 200],
           lineWidth: 0.2,
           font: 'helvetica',
-          halign: 'right',
+          halign: 'center',
           valign: 'middle'
         },
         headStyles: {
@@ -555,7 +654,7 @@
           textColor: white,
           fontStyle: 'bold',
           fontSize: 7,
-          halign: 'right'
+          halign: 'center'
         },
         columnStyles: {
           0: { halign: 'left', fontStyle: 'bold', cellWidth: 34, textColor: mutedText }
@@ -576,8 +675,32 @@
       });
     }
 
+    // === DEAL SUMMARY PARAGRAPH ===
+    const dealSummaryText = document.getElementById('dealSummaryText')?.textContent;
+    if (dealSummaryText && dealSummaryText !== 'Enter your numbers above to see a plain English analysis.') {
+      const afterTableY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 4 : y + 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...darkText);
+      const splitText = doc.splitTextToSize(dealSummaryText, cw);
+      doc.text(splitText, margin, afterTableY);
+    }
+
     // Footer
     const fy = H - 10;
+
+    // === QR CODE PLACEHOLDER ===
+    const qrSize = 15;
+    const qrX = W - margin - qrSize;
+    const qrY = fy - 18;
+    doc.setDrawColor(...tealLight);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(qrX, qrY, qrSize, qrSize, 1.5, 1.5, 'S');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5);
+    doc.setTextColor(...mutedText);
+    doc.text('Scan for tutorial', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+
     doc.setDrawColor(...tealLight);
     doc.setLineWidth(0.3);
     doc.line(margin, fy, W - margin, fy);
@@ -587,7 +710,7 @@
     doc.text('Fortified Realty Group, LLC', margin, fy + 4);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...mutedText);
-    doc.text('One North Main Street, Fall River, MA 02720  |  (508) 691-8035', margin + 42, fy + 4);
+    doc.text('One North Main Street, Fall River, MA 02720  |  (508) 691-8035  |  fortifiedrealty.net', margin + 42, fy + 4);
     doc.setFontSize(5.5);
     doc.text('This analysis is for informational purposes only. Not financial advice. Consult with qualified professionals before making investment decisions.', margin, fy + 7.5);
 
