@@ -308,14 +308,13 @@
     const summaryText = document.getElementById('dealSummaryText');
     if (!summaryEl || !summaryText) return;
 
-    // Need valid ARV range to do analysis
     if (!arvLow || arvLow <= 0) {
       summaryEl.className = 'deal-summary';
       summaryText.innerHTML = 'Enter your numbers above to see a plain English analysis.';
       return;
     }
 
-    // --- Scan the profit table ---
+    // --- Scan profit table ---
     const profitTable = document.getElementById('profitTable');
     if (!profitTable || profitTable.rows.length < 2) {
       summaryEl.className = 'deal-summary';
@@ -323,19 +322,14 @@
       return;
     }
 
-    // Collect all profit values from table cells
-    const profitRows = []; // profitRows[rowIndex] = [profit at each month]
-    const profitArvs = [];  // ARV for each row
-    const bodyRows = profitTable.querySelectorAll('tbody tr');
-    bodyRows.forEach(tr => {
+    const profitRows = [];
+    const profitArvs = [];
+    profitTable.querySelectorAll('tbody tr').forEach(tr => {
       const cells = tr.querySelectorAll('td');
       if (!cells.length) return;
-      const arv = parseNum(cells[0].textContent);
-      profitArvs.push(arv);
+      profitArvs.push(parseNum(cells[0].textContent));
       const profits = [];
-      for (let ci = 1; ci < cells.length; ci++) {
-        profits.push(parseNum(cells[ci].textContent));
-      }
+      for (let ci = 1; ci < cells.length; ci++) profits.push(parseNum(cells[ci].textContent));
       profitRows.push(profits);
     });
 
@@ -345,189 +339,129 @@
       return;
     }
 
-    // --- Scan the CoC table ---
-    const cocTable = document.getElementById('cocTable');
-    let bestCoCPct = 0;
-    let bestCoCArv = arvHigh;
-    if (cocTable) {
-      const cocBodyRows = cocTable.querySelectorAll('tbody tr');
-      cocBodyRows.forEach(tr => {
-        const cells = tr.querySelectorAll('td');
-        if (!cells.length || tr.classList.contains('results-row')) return;
-        const arv = parseNum(cells[0].textContent);
-        for (let ci = 1; ci < cells.length; ci++) {
-          const val = parseFloat(cells[ci].textContent);
-          if (!isNaN(val) && val > bestCoCPct) {
-            bestCoCPct = val;
-            bestCoCArv = arv;
-          }
-        }
-      });
-    }
-
-    // --- Analyze overall deal health ---
-    let totalCells = 0;
-    let greenCells = 0;
-    let redCells = 0;
-
-    let bestProfit = -Infinity;
-    let worstProfit = Infinity;
-    let bestCoCDisplay = 0;
-
-    // Best = highest ARV, fewest months (col 0 = 2 months)
-    // Worst = lowest ARV, most months (last col)
-    for (let ri = 0; ri < profitRows.length; ri++) {
-      for (let ci = 0; ci < profitRows[ri].length; ci++) {
-        const p = profitRows[ri][ci];
-        totalCells++;
-        if (p >= 0) greenCells++;
-        else redCells++;
-        if (p > bestProfit) bestProfit = p;
-        if (p < worstProfit) worstProfit = p;
-      }
-    }
-    // Best case: top-right of table (highest ARV, shortest time = col 0)
-    const bestRowIdx = profitRows.length - 1;
-    const bestColIdx = 0;
-    const bestCaseProfit = profitRows[bestRowIdx]?.[bestColIdx] ?? bestProfit;
-    // Worst case: bottom row (lowest ARV row = index 0), last column (most months)
-    const worstRowIdx = 0;
-    const worstColIdx = (profitRows[0]?.length ?? 1) - 1;
-    const worstCaseProfit = profitRows[worstRowIdx]?.[worstColIdx] ?? worstProfit;
-
-    // Best CoC at best case (highest ARV, 2 months)
-    if (cocTable) {
-      const cocBodyRows = cocTable.querySelectorAll('tbody tr');
-      const cocRowsArr = Array.from(cocBodyRows).filter(tr => !tr.classList.contains('results-row'));
-      if (cocRowsArr.length > 0) {
-        const bestCocRow = cocRowsArr[cocRowsArr.length - 1];
-        const cells = bestCocRow.querySelectorAll('td');
-        if (cells.length > 1) {
-          bestCoCDisplay = parseFloat(cells[1].textContent) || 0;
-        }
-      }
-    }
-
-    const greenRatio = totalCells > 0 ? greenCells / totalCells : 0;
-
-    // Find midpoint ARV row (middle of profitRows)
+    const numCols = profitRows[0]?.length || 0;
+    const arvSpread = arvHigh - arvLow;
     const midRowIdx = Math.floor(profitRows.length / 2);
     const midArv = profitArvs[midRowIdx] || ((arvLow + arvHigh) / 2);
-    const midProfitArr = profitRows[midRowIdx] || [];
-    // Mid profit at ~4 months (index 1)
-    const midProfit = midProfitArr[1] !== undefined ? midProfitArr[1] : midProfitArr[0];
 
-    // At low ARV, find max months where profit stays positive (scan across cols)
-    const lowArvProfits = profitRows[0] || [];
-    let maxProfitableMonths = 0;
-    for (let ci = 0; ci < lowArvProfits.length; ci++) {
-      if (lowArvProfits[ci] >= 0) maxProfitableMonths = MONTHS[ci];
+    // Count green/red
+    let totalCells = 0, greenCells = 0;
+    for (const row of profitRows) {
+      for (const p of row) { totalCells++; if (p >= 0) greenCells++; }
     }
+    const greenRatio = totalCells > 0 ? greenCells / totalCells : 0;
 
-    // Ideal months: at mid ARV, find break-even
-    let idealMonths = MONTHS[0];
-    for (let ci = 0; ci < midProfitArr.length; ci++) {
-      if (midProfitArr[ci] >= 0) idealMonths = MONTHS[ci];
-    }
+    // --- Find the SWEET SPOT ---
+    // Best balance = mid-range ARV, moderate timeline, healthy profit
+    // Weight toward middle ARVs (most realistic) and 4-6 month timelines
+    let sweetSpotArv = midArv, sweetSpotMonths = MONTHS[1], sweetSpotProfit = 0;
+    let bestScore = -Infinity;
 
-    // Min profitable ARV: find lowest ARV where any col is positive
-    let minProfitableArv = null;
-    let maxMonthsBreakEven = MONTHS[MONTHS.length - 1];
     for (let ri = 0; ri < profitRows.length; ri++) {
-      if (profitRows[ri].some(p => p >= 0)) {
-        minProfitableArv = profitArvs[ri];
-        // Find how many months at that ARV
-        for (let ci = 0; ci < profitRows[ri].length; ci++) {
-          if (profitRows[ri][ci] >= 0) maxMonthsBreakEven = MONTHS[ci];
+      for (let ci = 0; ci < numCols; ci++) {
+        const profit = profitRows[ri][ci];
+        if (profit <= 0) continue;
+        const months = MONTHS[ci];
+        // Score: profit matters, but penalize extreme timelines and extreme ARVs
+        const arvDist = Math.abs(profitArvs[ri] - midArv) / (arvSpread || 1);
+        const timePenalty = months <= 6 ? 1.0 : months <= 8 ? 0.85 : months <= 10 ? 0.65 : 0.4;
+        const arvBonus = 1.0 - (arvDist * 0.3);
+        const score = profit * timePenalty * arvBonus;
+        if (score > bestScore) {
+          bestScore = score;
+          sweetSpotArv = profitArvs[ri];
+          sweetSpotMonths = months;
+          sweetSpotProfit = profit;
         }
-        break;
       }
     }
 
-    const arvSpread = arvHigh - arvLow;
-    const carryPerMonth = monthlyCarryCost;
-    const savingsPerPoint = (arvLow + arvHigh) / 2 / 100; // 1% of avg ARV
+    // Find max profitable months at low ARV
+    let maxMonthsAtLow = 0;
+    for (let ci = 0; ci < (profitRows[0]?.length || 0); ci++) {
+      if (profitRows[0][ci] >= 0) maxMonthsAtLow = MONTHS[ci];
+    }
 
-    // --- Classify deal ---
+    // Find the breakeven ARV (lowest ARV where at least 6-month column is positive)
+    let breakEvenArv = null;
+    const sixMonthCol = MONTHS.indexOf(6) >= 0 ? MONTHS.indexOf(6) : 2;
+    for (let ri = 0; ri < profitRows.length; ri++) {
+      if (profitRows[ri][sixMonthCol] >= 0) { breakEvenArv = profitArvs[ri]; break; }
+    }
+
+    // --- Classify and build summary ---
     let dealClass, sentences = [];
 
     if (greenRatio >= 0.75) {
-      // Strong deal
       dealClass = 'deal-summary positive';
 
       sentences.push(
-        `This flip looks solid across the board. Even at the low ARV of ${fmt(arvLow)} with an ${
-          MONTHS[worstColIdx]
-        }-month timeline, you\'re still looking at ${fmt(Math.round(worstCaseProfit))} in profit.`
+        `This looks like a solid flip. The sweet spot is around ${fmt(sweetSpotArv)} ARV, sold in ${sweetSpotMonths} months — that puts you at roughly ${fmt(Math.round(sweetSpotProfit))} in profit.`
       );
+      if (maxMonthsAtLow > 0) {
+        sentences.push(
+          `Even at the conservative end of ${fmt(arvLow)}, you've got up to ${maxMonthsAtLow} months to get it sold before the deal starts losing money.`
+        );
+      }
       sentences.push(
-        `Your best case — ${fmt(arvHigh)} sold in ${MONTHS[bestColIdx]} months — puts you at ${fmt(Math.round(bestCaseProfit))} with a ${bestCoCDisplay.toFixed(1)}% return on your cash.`
-      );
-      sentences.push(
-        `The monthly carry cost of ${fmt(Math.round(monthlyCarryCost))} gives you room to hold for a while without the deal going sideways.`
+        'Double check your rehab budget and ARV comps — if those numbers hold, the deal has good margin for error.'
       );
 
     } else if (greenRatio >= 0.3) {
-      // Mixed deal
       dealClass = 'deal-summary caution';
 
       sentences.push(
-        `This deal works, but the timeline matters. At ${fmt(arvLow)}, you need to be done and sold within ${
-          maxProfitableMonths > 0 ? maxProfitableMonths : MONTHS[0]
-        } months to stay profitable.`
+        `This deal can work, but speed and ARV accuracy are everything.`
       );
       sentences.push(
-        `The sweet spot looks like hitting around ${fmt(Math.round(midArv))} ARV and getting out in ${idealMonths} months — that puts you at roughly ${fmt(Math.round(midProfit))} profit.`
+        `The sweet spot is around ${fmt(sweetSpotArv)} ARV, out in ${sweetSpotMonths} months — roughly ${fmt(Math.round(sweetSpotProfit))} in profit.`
       );
-      if (arvSpread > 100000) {
+      if (maxMonthsAtLow > 0) {
         sentences.push(
-          `Your ARV range of ${fmt(arvLow)} to ${fmt(arvHigh)} is a ${fmt(arvSpread)} spread — that\'s a lot of uncertainty. The deal really hinges on hitting the upper end of that range.`
-        );
-      }
-      sentences.push(
-        `Watch your holding costs — at ${fmt(Math.round(carryPerMonth))}/month, every extra month eats into ${fmt(Math.round(carryPerMonth))} of profit.`
-      );
-
-    } else {
-      // Bad deal
-      dealClass = 'deal-summary negative';
-
-      const allNegative = greenCells === 0;
-      if (allNegative) {
-        sentences.push(
-          `At these numbers, the deal doesn\'t pencil out at any ARV or timeline in the range. You\'d need a lower purchase price or a significantly higher ARV to make this work.`
+          `At the low end of ${fmt(arvLow)}, you need to be done and sold within ${maxMonthsAtLow} months or you're losing money.`
         );
       } else {
         sentences.push(
-          `The numbers are tough on this one. At the list price of ${fmt(Math.round(purchasePrice))}, most scenarios show a loss.`
+          `At the low end of ${fmt(arvLow)}, the deal doesn't work at any timeline — you'd need to hit closer to ${breakEvenArv ? fmt(breakEvenArv) : fmt(midArv)} to make it pencil.`
         );
-        if (minProfitableArv !== null) {
-          sentences.push(
-            `You\'d need to hit ${fmt(Math.round(minProfitableArv))} or higher AND sell within ${maxMonthsBreakEven} months just to break even.`
-          );
-        }
+      }
+      if (arvSpread > 100000) {
+        sentences.push(
+          `That ${fmt(arvSpread)} ARV spread is a lot of uncertainty. The profit really hinges on hitting the upper end of the range.`
+        );
+      }
+
+    } else {
+      dealClass = 'deal-summary negative';
+
+      if (greenCells === 0) {
+        sentences.push(
+          `The numbers don't work on this one. At this purchase price and rehab budget, there's no combination of ARV and timeline that produces a profit. You'd need a lower entry point or a significantly higher ARV to make this deal pencil.`
+        );
+      } else {
+        sentences.push(
+          `This is a tight deal. The only way it works is hitting ${fmt(sweetSpotArv)} or above and selling within ${sweetSpotMonths} months.`
+        );
+        sentences.push(
+          `Outside that narrow window, you're losing money. Unless you have strong comps supporting the high end of your ARV range, this one's risky.`
+        );
       }
     }
 
-    // --- Additional smart observations ---
+    // --- Lever-specific observations (always) ---
+    if (hmlLoan > 0 && hmlRatePct >= 10) {
+      sentences.push(
+        `At ${hmlRatePct}% hard money, you're paying ${fmt(Math.round(hmlPayment))}/month in interest alone — speed is your friend.`
+      );
+    }
     if (helocAmount > 0) {
       sentences.push(
-        `You\'re using ${fmt(Math.round(helocAmount))} in HELOC, which keeps your out-of-pocket cash to ${fmt(Math.round(adjustedCashToClose))}. Just remember that\'s borrowed money — the interest adds ${fmt(Math.round(helocPayment))}/month to your carry.`
-      );
-    }
-    if (hmlLoan > 0 && hmlRatePct >= 12) {
-      sentences.push(
-        `The ${hmlRatePct}% hard money rate is standard but not cheap. At ${fmt(Math.round(hmlPayment))}/month in interest alone, speed is your friend on this deal.`
-      );
-    }
-    if (totalSellingPct > 8) {
-      sentences.push(
-        `Your selling costs total ${totalSellingPct.toFixed(1)}% — that\'s on the higher side. If you can negotiate the broker fee down, every point saves you ${fmt(Math.round(savingsPerPoint))} on the exit.`
+        `The ${fmt(Math.round(helocAmount))} HELOC keeps your out-of-pocket to ${fmt(Math.round(adjustedCashToClose))}, but that's still borrowed money at ${fmt(Math.round(helocPayment))}/month.`
       );
     }
     if (monthlyCarryCost > 5000) {
       sentences.push(
-        `At ${fmt(Math.round(monthlyCarryCost))}/month in carrying costs, time is really working against you. Every month you hold past your target timeline costs you ${fmt(Math.round(monthlyCarryCost))}.`
+        `Your total carry is ${fmt(Math.round(monthlyCarryCost))}/month — every month past your target eats that straight out of profit.`
       );
     }
 
