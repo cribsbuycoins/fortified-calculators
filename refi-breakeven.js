@@ -415,10 +415,8 @@
       <th>Year</th>
       <th>Current Balance</th>
       <th>Refi Balance</th>
-      <th>Mo. Interest (Current)</th>
-      <th>Mo. Interest (Refi)</th>
-      <th>Mo. Principal (Current)</th>
-      <th>Mo. Principal (Refi)</th>
+      <th>Cum. Interest (Current)</th>
+      <th>Cum. Interest (Refi)</th>
       <th>Net Position</th>
     </tr>`;
 
@@ -432,25 +430,17 @@
 
       const econA = snA.cumPayment + snA.balance + cumPMI_A;
       const econB = snB.cumPayment + snB.balance + upfrontCost + cumPMI_B - cashOut;
-      const netPos = econA - econB; // positive = refi is ahead
+      const netPos = econA - econB;
       const netFmt = fmt(Math.abs(netPos));
       const netLabel = netPos > 0 ? `Refi ahead by ${netFmt}` : netPos < 0 ? `Current ahead by ${netFmt}` : 'Even';
       const netClass = netPos > 0 ? 'cond-green' : netPos < 0 ? 'cond-red' : '';
-
-      // Monthly interest and principal AT that year point (not cumulative)
-      const moIntA = snA.interest != null ? fmt(snA.interest) : '$0';
-      const moIntB = snB.interest != null ? fmt(snB.interest) : '$0';
-      const moPrinA = snA.principal != null ? fmt(snA.principal) : '$0';
-      const moPrinB = snB.principal != null ? fmt(snB.principal) : '$0';
 
       rows += `<tr>
         <td><strong>Yr ${yr}</strong></td>
         <td>${fmt(snA.balance)}</td>
         <td>${fmt(snB.balance)}</td>
-        <td>${moIntA}</td>
-        <td>${moIntB}</td>
-        <td>${moPrinA}</td>
-        <td>${moPrinB}</td>
+        <td>${fmt(snA.cumInterest)}</td>
+        <td>${fmt(snB.cumInterest)}</td>
         <td class="${netClass}">${netLabel}</td>
       </tr>`;
     });
@@ -465,19 +455,44 @@
     if (!el || !sec) return;
 
     const holdYrs = Math.round(holdingMonths / 12);
-    const cashOutNote = cashOut > 0 ? ` ${fmt(cashOut)} in cash at closing.` : '';
-    let text = '';
+    let sentences = [];
 
     if (monthlySavings < 0) {
-      text = `This refinance increases your monthly payment by ${fmt(Math.abs(monthlySavings))}. The standard break-even does not apply.${cashOutNote ? ' However, you receive' + cashOutNote : ''} Over your ${holdYrs}-year hold period, you would be ${fmt(Math.abs(netSavings))} ${netSavings < 0 ? 'worse off' : 'ahead'} compared to keeping your current loan.`;
+      sentences.push(`This refinance increases your monthly payment by ${fmt(Math.abs(monthlySavings))}/month.`);
+      if (cashOut > 0) sentences.push(`You receive ${fmt(cashOut)} in cash at closing.`);
+      sentences.push(`Over your ${holdYrs}-year hold period, you would be ${fmt(Math.abs(netSavings))} ${netSavings < 0 ? 'worse off' : 'ahead'} compared to keeping your current loan.`);
     } else if (!isFinite(trueBE)) {
-      text = `Monthly payment savings of ${fmt(monthlySavings)}/month.${cashOutNote ? ' Cash out at closing:' + cashOutNote : ''} However, the true economic break-even is not reached within the loan lifetimes, due to the amortization reset. Over your ${holdYrs}-year hold, you'd be ${netSavings > 0 ? 'ahead' : 'behind'} by ${fmt(Math.abs(netSavings))}.`;
+      sentences.push(`Monthly payment savings of ${fmt(monthlySavings)}/month.`);
+      if (cashOut > 0) sentences.push(`Cash out at closing: ${fmt(cashOut)}.`);
+      sentences.push(`However, the true economic break-even is never reached within the loan lifetimes due to the amortization reset.`);
+      sentences.push(`Over your ${holdYrs}-year hold, you'd be ${netSavings > 0 ? 'ahead' : 'behind'} by ${fmt(Math.abs(netSavings))}.`);
     } else {
       const ahead = holdingMonths > trueBE;
-      text = `Monthly payment savings of ${fmt(monthlySavings)}/month.${cashOutNote ? ' Cash out at closing:' + cashOutNote : ''} True break-even: ${fmtMonthsLong(trueBE)}. You plan to stay ${holdYrs} years — you ${ahead ? 'will' : 'will not'} pass the true break-even before your expected move date. Net position at hold period: ${netSavings > 0 ? 'ahead' : 'behind'} by ${fmt(Math.abs(netSavings))}.`;
+      sentences.push(`Monthly payment savings of ${fmt(monthlySavings)}/month.`);
+      if (cashOut > 0) sentences.push(`Cash out at closing: ${fmt(cashOut)}.`);
+      sentences.push(`True break-even: ${fmtMonthsLong(trueBE)}.`);
+      sentences.push(`You plan to stay ${holdYrs} years — you ${ahead ? 'will' : 'will not'} pass the true break-even before your expected move date.`);
+      sentences.push(`Net position at hold period: ${netSavings > 0 ? 'ahead' : 'behind'} by ${fmt(Math.abs(netSavings))}.`);
     }
 
-    el.textContent = text;
+    // === TRUE COST OF CASH-OUT ANALYSIS ===
+    if (cashOut > 0) {
+      // The true cost of the cash-out = how much worse off you are vs. a straight rate-only refi
+      // Over the holding period: extra interest on the cash-out amount + lost equity growth
+      const cashOutRate = parseNum(document.getElementById('newRate')?.value) / 100;
+      const holdMonths = holdingMonths;
+      // Extra interest paid on the cash-out portion over hold period (simplified)
+      const monthlyExtraInterest = cashOut * (cashOutRate / 12);
+      // Total extra interest over hold (slightly overstated since principal amortizes, but close enough for plain English)
+      const totalExtraInterest = Math.round(monthlyExtraInterest * holdMonths * 0.85); // 0.85 factor for amortization
+      const trueCostOfCashOut = totalExtraInterest;
+      const totalCostWithPrincipal = cashOut + trueCostOfCashOut;
+
+      sentences.push('');
+      sentences.push(`<br><br><strong>The True Cost of Your ${fmt(cashOut)} Cash-Out:</strong> That ${fmt(cashOut)} isn't free money — over your ${holdYrs}-year hold period, you'll pay roughly ${fmt(trueCostOfCashOut)} in extra interest on it. That means the real cost of that cash is ${fmt(totalCostWithPrincipal)} (the ${fmt(cashOut)} plus ${fmt(trueCostOfCashOut)} in interest). Whatever you're doing with that money should be worth more than ${fmt(totalCostWithPrincipal)} to you over ${holdYrs} years — otherwise, you're better off leaving the equity in the house.`);
+    }
+
+    el.innerHTML = sentences.filter(s => s !== '').join(' ');
     sec.className = 'deal-summary' + (netSavings > 0 ? ' positive' : netSavings < 0 ? ' negative' : '');
   }
 
