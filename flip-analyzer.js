@@ -684,35 +684,16 @@
     // ===== FOOTER AREA (fixed position) =====
     const fy = H - 10;
 
-    // ===== DEAL SUMMARY PARAGRAPH (fit between last table and footer) =====
-    const dealSummaryContent = document.getElementById('dealSummaryText')?.textContent;
-    if (dealSummaryContent && dealSummaryContent.trim() && dealSummaryContent !== 'Enter your numbers above to see a plain English analysis.') {
-      const availableSpace = fy - 22 - y; // space above footer/QR area
-      if (availableSpace > 8) {
-        // Pick font size that fits: try 6.5, then 5.5, then 5
-        let summaryFontSize = 6.5;
-        let splitSummary;
-        const summaryWidth = cw - 20; // leave room for QR on right
-        for (const trySize of [6.5, 5.5, 5]) {
-          doc.setFontSize(trySize);
-          splitSummary = doc.splitTextToSize(dealSummaryContent.trim(), summaryWidth);
-          const neededHeight = splitSummary.length * (trySize * 0.5) + 6;
-          if (neededHeight <= availableSpace) { summaryFontSize = trySize; break; }
-          summaryFontSize = trySize;
-        }
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(summaryFontSize);
-        doc.setTextColor(...teal);
-        doc.text('DEAL SUMMARY', margin, y + 1);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(summaryFontSize);
-        doc.setTextColor(...darkText);
-        doc.text(splitSummary, margin, y + 1 + summaryFontSize * 0.6);
-      }
-    }
-    const qrSize = 15;
+    // ===== BOTTOM ZONE: Deal Summary (left) + QR Code (right) =====
+    // Use all space between last table and footer line
+    const bottomZoneTop = y + 2;
+    const bottomZoneBottom = fy - 2;
+    const bottomZoneHeight = bottomZoneBottom - bottomZoneTop;
+
+    // QR code box on the right
+    const qrSize = 18;
     const qrX = W - margin - qrSize;
-    const qrY = fy - 18;
+    const qrY = bottomZoneBottom - qrSize - 4;
     doc.setDrawColor(...tealLight);
     doc.setLineWidth(0.4);
     doc.setFillColor(...lightBg);
@@ -720,7 +701,42 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5);
     doc.setTextColor(...mutedText);
-    doc.text('Scan for tutorial', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+    doc.text('Scan for', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+    doc.text('tutorial', qrX + qrSize / 2, qrY + qrSize + 6, { align: 'center' });
+
+    // Deal summary text box on the left (all remaining width)
+    const dealSummaryContent = document.getElementById('dealSummaryText')?.textContent;
+    if (dealSummaryContent && dealSummaryContent.trim() && dealSummaryContent !== 'Enter your numbers above to see a plain English analysis.' && bottomZoneHeight > 10) {
+      const summaryBoxWidth = qrX - margin - 6; // leave gap before QR
+
+      // Draw a subtle box
+      doc.setDrawColor(...tealLight);
+      doc.setLineWidth(0.3);
+      doc.setFillColor(250, 251, 253);
+      doc.roundedRect(margin, bottomZoneTop, summaryBoxWidth, bottomZoneHeight, 1.5, 1.5, 'FD');
+
+      // Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(...teal);
+      doc.text('DEAL SUMMARY', margin + 3, bottomZoneTop + 5);
+
+      // Text — auto-size to fit
+      const textAreaHeight = bottomZoneHeight - 8;
+      const textWidth = summaryBoxWidth - 6;
+      let fontSize = 6.5;
+      let splitText;
+      for (const trySize of [6.5, 6, 5.5, 5, 4.5]) {
+        doc.setFontSize(trySize);
+        splitText = doc.splitTextToSize(dealSummaryContent.trim(), textWidth);
+        if (splitText.length * (trySize * 0.45) <= textAreaHeight) { fontSize = trySize; break; }
+        fontSize = trySize;
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(fontSize);
+      doc.setTextColor(60, 60, 60);
+      doc.text(splitText, margin + 3, bottomZoneTop + 9);
+    }
 
     // Footer
     doc.setDrawColor(...tealLight);

@@ -675,31 +675,59 @@
       });
     }
 
-    // === DEAL SUMMARY PARAGRAPH ===
-    const dealSummaryText = document.getElementById('dealSummaryText')?.textContent;
-    if (dealSummaryText && dealSummaryText !== 'Enter your numbers above to see a plain English analysis.') {
-      const afterTableY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 4 : y + 4;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(...darkText);
-      const splitText = doc.splitTextToSize(dealSummaryText, cw);
-      doc.text(splitText, margin, afterTableY);
-    }
-
-    // Footer
+    // Footer position
     const fy = H - 10;
 
-    // === QR CODE PLACEHOLDER ===
-    const qrSize = 15;
+    // === BOTTOM ZONE: Deal Summary (left) + QR Code (right) ===
+    const afterTableY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 2 : y + 2;
+    const bottomZoneTop = afterTableY;
+    const bottomZoneBottom = fy - 2;
+    const bottomZoneHeight = bottomZoneBottom - bottomZoneTop;
+
+    // QR code box on the right
+    const qrSize = 18;
     const qrX = W - margin - qrSize;
-    const qrY = fy - 18;
+    const qrY = bottomZoneBottom - qrSize - 4;
     doc.setDrawColor(...tealLight);
     doc.setLineWidth(0.4);
-    doc.roundedRect(qrX, qrY, qrSize, qrSize, 1.5, 1.5, 'S');
+    doc.setFillColor(...lightBg);
+    doc.roundedRect(qrX, qrY, qrSize, qrSize, 1.5, 1.5, 'FD');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(5);
     doc.setTextColor(...mutedText);
-    doc.text('Scan for tutorial', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+    doc.text('Scan for', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+    doc.text('tutorial', qrX + qrSize / 2, qrY + qrSize + 6, { align: 'center' });
+
+    // Deal summary text box on the left
+    const dealSummaryText = document.getElementById('dealSummaryText')?.textContent;
+    if (dealSummaryText && dealSummaryText !== 'Enter your numbers above to see a plain English analysis.' && bottomZoneHeight > 10) {
+      const summaryBoxWidth = qrX - margin - 6;
+
+      doc.setDrawColor(...tealLight);
+      doc.setLineWidth(0.3);
+      doc.setFillColor(250, 251, 253);
+      doc.roundedRect(margin, bottomZoneTop, summaryBoxWidth, bottomZoneHeight, 1.5, 1.5, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(...teal);
+      doc.text('DEAL SUMMARY', margin + 3, bottomZoneTop + 5);
+
+      const textAreaHeight = bottomZoneHeight - 8;
+      const textWidth = summaryBoxWidth - 6;
+      let fontSize = 6.5;
+      let splitText;
+      for (const trySize of [6.5, 6, 5.5, 5, 4.5]) {
+        doc.setFontSize(trySize);
+        splitText = doc.splitTextToSize(dealSummaryText, textWidth);
+        if (splitText.length * (trySize * 0.45) <= textAreaHeight) { fontSize = trySize; break; }
+        fontSize = trySize;
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(fontSize);
+      doc.setTextColor(60, 60, 60);
+      doc.text(splitText, margin + 3, bottomZoneTop + 9);
+    }
 
     doc.setDrawColor(...tealLight);
     doc.setLineWidth(0.3);
