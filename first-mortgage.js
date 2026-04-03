@@ -77,6 +77,9 @@
   const expectedReturnEl = document.getElementById('expectedReturn');
   let userEditedReturn = false;
 
+  // Pay frequency dropdown
+  document.getElementById('payFrequency')?.addEventListener('change', calculate);
+
   vehicleSelect.addEventListener('change', () => {
     const key = vehicleSelect.value;
     if (key !== 'custom') {
@@ -307,13 +310,24 @@
     const practiceGap = futurePI - currentRent;
     document.getElementById('practiceGap').textContent = fmt(Math.abs(practiceGap)) + '/mo' + (practiceGap > 0 ? ' more' : ' less');
 
+    // Pay frequency
+    const payFreq = document.getElementById('payFrequency')?.value || 'biweekly';
+    const checksPerMonth = payFreq === 'weekly' ? 52/12 : payFreq === 'biweekly' ? 26/12 : 1;
+    const freqLabel = payFreq === 'weekly' ? '/week' : payFreq === 'biweekly' ? '/paycheck' : '/month';
+    const freqLabelShort = payFreq === 'weekly' ? 'Wk' : payFreq === 'biweekly' ? 'Check' : 'Mo';
+
+    // Per-paycheck current savings
+    const perPaycheckCurrent = currentMonthlySavings / checksPerMonth;
+    setText('perPaycheckSavings', fmt(Math.round(perPaycheckCurrent)) + freqLabel);
+
     // --- Coaching Bar ---
     const coachingText = document.getElementById('coachingText');
     if (practiceGap > 0) {
+      const gapPerCheck = Math.round(practiceGap / checksPerMonth);
       coachingText.textContent =
         `Your future housing payment is ${fmt(futurePI)} and your current rent is ${fmt(currentRent)}. ` +
-        `That means your practice-payment gap is ${fmt(practiceGap)}/month. ` +
-        `If you can redirect that extra ${fmt(practiceGap)} into savings today, you'll be training for your new payment — and turbocharging your down payment fund.`;
+        `That means your practice-payment gap is ${fmt(practiceGap)}/month (${fmt(gapPerCheck)}${freqLabel}). ` +
+        `If you can redirect that extra ${fmt(gapPerCheck)} from every paycheck into savings, you'll be training for your new payment — and turbocharging your down payment fund.`;
     } else if (practiceGap < 0) {
       coachingText.textContent =
         `Your expected payment of ${fmt(futurePI)} is actually less than your current rent of ${fmt(currentRent)}. ` +
@@ -393,7 +407,7 @@
 
     // --- Ramp-Up Schedule Table ---
     const phases = summarizeByPhase(schedule, months);
-    renderScheduleTable(phases, adjustedCashNeeded, currentMonthlySavings);
+    renderScheduleTable(phases, adjustedCashNeeded, currentMonthlySavings, checksPerMonth, freqLabelShort);
 
     // --- Scenario Comparison ---
     renderScenarioTable(months, currentSavings, adjustedCashNeeded, rampStyle, vehicle, expectedReturn, schedule);
@@ -410,16 +424,19 @@
   }
 
   // ===== RENDER SCHEDULE TABLE =====
-  function renderScheduleTable(phases, targetCash, currentMonthlySavings) {
+  function renderScheduleTable(phases, targetCash, currentMonthlySavings, checksPerMonth, freqLabel) {
     const head = document.getElementById('scheduleHead');
     const body = document.getElementById('scheduleBody');
     const cms = currentMonthlySavings || 0;
+    const cpm = checksPerMonth || (26/12);
+    const fl = freqLabel || 'Check';
 
     head.innerHTML = `<tr>
       <th>Phase</th>
       <th>Months</th>
       <th>Total / Month</th>
-      ${cms > 0 ? '<th>Already Saving</th><th>Additional</th>' : ''}
+      <th>Per ${fl}</th>
+      ${cms > 0 ? `<th>Additional / ${fl}</th>` : ''}
       <th>Projected Balance</th>
       <th>vs. Target</th>
     </tr>`;
@@ -432,6 +449,8 @@
         ? `<span style="color:var(--color-positive,#34d399)">+${fmt(diff)}</span>`
         : `<span style="color:var(--color-warning,#fbbf24)">${fmt(diff)}</span>`;
       const additional = Math.max(0, p.savings - cms);
+      const perCheck = Math.round(p.savings / cpm);
+      const additionalPerCheck = Math.round(additional / cpm);
 
       const row = document.createElement('tr');
       if (isLast) row.style.fontWeight = '600';
@@ -439,7 +458,8 @@
         <td>Phase ${p.phase}</td>
         <td>${p.monthStart}–${p.monthEnd}</td>
         <td>${fmt(p.savings)}</td>
-        ${cms > 0 ? `<td>${fmt(cms)}</td><td style="color:var(--color-accent); font-weight:600;">${fmt(additional)}</td>` : ''}
+        <td style="color:var(--color-accent); font-weight:600;">${fmt(perCheck)}</td>
+        ${cms > 0 ? `<td style="color:var(--color-accent); font-weight:600;">${fmt(additionalPerCheck)}</td>` : ''}
         <td>${fmt(p.endBalance)}</td>
         <td>${diffStr}</td>
       `;
@@ -793,9 +813,11 @@
         doc.setFillColor(255, 255, 255);
         doc.rect(boxX + 4, actionY - 5, 5, 5, 'FD');
         const addl = Math.max(0, phase.savings - currentMonthlySavings);
-        const depositText = currentMonthlySavings > 0 && addl < phase.savings
-          ? `${monthStr}  —  Save ${fmt(phase.savings)} total (${fmt(currentMonthlySavings)} existing + ${fmt(addl)} additional) into your ${vehicleLabel}`
-          : `${monthStr}  —  Deposit ${fmt(phase.savings)} into your ${vehicleLabel}`;
+        const pdfPayFreq = document.getElementById('payFrequency')?.value || 'biweekly';
+        const pdfChecksPerMonth = pdfPayFreq === 'weekly' ? 52/12 : pdfPayFreq === 'biweekly' ? 26/12 : 1;
+        const pdfFreqLabel = pdfPayFreq === 'weekly' ? 'week' : pdfPayFreq === 'biweekly' ? 'paycheck' : 'month';
+        const pdfPerCheck = fmt(Math.round(phase.savings / pdfChecksPerMonth));
+        const depositText = `${monthStr}  —  ${fmt(phase.savings)}/mo (${pdfPerCheck}/${pdfFreqLabel}) into your ${vehicleLabel}`;
         doc.text(depositText, boxX + 14, actionY + 1);
         actionY += 15;
       }
