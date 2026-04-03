@@ -49,6 +49,15 @@
     try { doc.addImage('./assets/fortified-logo-print.png', 'PNG', mg, y, 60, 11); } catch(e) {}
     y += 20;
 
+    var addr = document.getElementById('address')?.value;
+    if (addr && addr.trim()) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(26, 26, 26);
+      doc.text('Property: ' + addr.trim(), mg, y);
+      y += 10;
+    }
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(0, 52, 77);
