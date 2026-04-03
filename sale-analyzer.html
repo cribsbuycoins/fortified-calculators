@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sale Analyzer — Fortified Realty Group</title>
+  <meta name="description" content="Free Investment Property Sale Analyzer with Estimated Tax Liability. Calculate net proceeds, depreciation recapture, capital gains tax, and true net proceeds for rental property sales. Fortified Realty Group, One North Main Street, Fall River, MA 02720.">
+  <meta name="theme-color" content="#00344D">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./base.css">
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
+  <style>
+    /* Accountant Checklist */
+    .accountant-checklist {
+      background: var(--color-surface);
+      border-left: 4px solid var(--color-accent);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      margin-bottom: var(--space-6);
+    }
+    .accountant-checklist h2 {
+      font-family: 'Cabinet Grotesk', sans-serif;
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--color-text);
+      margin: 0 0 var(--space-4) 0;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .accountant-checklist h2 svg {
+      flex-shrink: 0;
+    }
+    .checklist-intro {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+      margin: 0 0 var(--space-4) 0;
+      font-style: italic;
+    }
+    .checklist-items {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 var(--space-2) 0;
+      counter-reset: checklist-counter;
+    }
+    .checklist-items li {
+      counter-increment: checklist-counter;
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding: var(--space-2) 0;
+      font-size: var(--text-sm);
+      color: var(--color-text);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .checklist-items li:last-child {
+      border-bottom: none;
+    }
+    .checklist-items li::before {
+      content: counter(checklist-counter);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      background: var(--color-accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 50%;
+      margin-top: 1px;
+    }
+    .checklist-note {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      margin: var(--space-4) 0 0 0;
+      line-height: 1.5;
+    }
+
+    /* Tax Rates inline row */
+    .tax-rates-section {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5) var(--space-6);
+      margin-bottom: var(--space-6);
+    }
+    .tax-rates-section h2 {
+      font-family: 'Cabinet Grotesk', sans-serif;
+      font-size: var(--text-base);
+      font-weight: 700;
+      color: var(--color-text);
+      margin: 0 0 var(--space-4) 0;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .tax-rates-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-4);
+    }
+    @media (max-width: 768px) {
+      .tax-rates-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 480px) {
+      .tax-rates-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    .tax-rate-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    .tax-rate-group label {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .tax-rate-group input,
+    .tax-rate-group select {
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      color: var(--color-text);
+      font-size: var(--text-sm);
+      font-family: 'Satoshi', sans-serif;
+      font-weight: 600;
+      text-align: right;
+    }
+    .tax-rate-group select {
+      cursor: pointer;
+      text-align: left;
+    }
+    .tax-rate-group input:focus,
+    .tax-rate-group select:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+
+    /* Depreciation note */
+    .dep-note {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+      font-style: italic;
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-bg);
+      border-radius: var(--radius);
+      border-left: 2px solid var(--color-accent);
+    }
+
+    /* Computed sub-note */
+    .computed-sub-note {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      text-align: right;
+      font-style: italic;
+    }
+
+    /* Disclaimer */
+    .tax-disclaimer {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4) var(--space-5);
+      margin-bottom: var(--space-6);
+    }
+    .tax-disclaimer p {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      margin: 0;
+      line-height: 1.6;
+    }
+    .tax-disclaimer strong {
+      color: var(--color-text);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="./index.html" class="logo-link">
+        <img src="./assets/fortified-logo-white.png" alt="Fortified Realty Group" height="36">
+        <span class="logo-text">Real Estate Calculators</span>
+      </a>
+      <a href="./index.html" class="nav-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        All Tools
+      </a>
+    </div>
+  </header>
+
+  <main class="calc-page" id="calcContent">
+
+    <div class="calc-title-area">
+      <h1>Sale Analyzer</h1>
+      <p>Investment property sale analysis with estimated tax liability for rental properties with depreciation.</p>
+    </div>
+
+    <div class="calc-address">
+      <label for="address">Property Address</label>
+      <input type="text" id="address" placeholder="123 Main St, Fall River, MA 02720">
+    </div>
+
+    <!-- ==================== ACCOUNTANT CHECKLIST ==================== -->
+    <div class="accountant-checklist" id="accountantChecklist">
+      <h2>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Before You Run This Analysis — Ask Your Accountant
+      </h2>
+      <p class="checklist-intro">Talk to your accountant and have these answers ready before you begin:</p>
+      <ol class="checklist-items">
+        <li>What was the original purchase price?</li>
+        <li>What were the closing costs at purchase?</li>
+        <li>What capital improvements have been documented?</li>
+        <li>What is the depreciable basis for the building (not land)?</li>
+        <li>How many years have you owned it?</li>
+        <li>What is your annual depreciation amount?</li>
+        <li>Am I subject to NIIT (Net Investment Income Tax)?</li>
+        <li>What is my federal capital gains bracket (0%, 15%, or 20%)?</li>
+        <li>Should I consider a 1031 exchange before selling?</li>
+      </ol>
+      <button class="btn btn-primary" id="dismissChecklist" style="margin-top:var(--space-4);">
+        I've Got My Numbers — Let's Go
+      </button>
+      <p class="checklist-note">This tool defaults to Massachusetts tax rates and transaction costs. You can override any assumption with your own local rates.</p>
+    </div>
+
+    <!-- ==================== CALCULATOR SECTIONS ==================== -->
+    <div id="calculatorSections" style="display:none">
+
+      <!-- ===== SECTION 1: Property & Sale ===== -->
+      <div class="calc-sections">
+
+        <!-- COL 1: The Sale -->
+        <div class="input-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <h2>The Sale</h2>
+          </div>
+          <div class="section-body">
+            <div class="input-row">
+              <label for="grossSalePrice">Gross Sale Price</label>
+              <input type="text" id="grossSalePrice" value="$650,000" inputmode="numeric" class="money-input">
+            </div>
+            <div class="input-row">
+              <label for="mortgagePayoff">Mortgage Payoff</label>
+              <input type="text" id="mortgagePayoff" value="$388,000" inputmode="numeric" class="money-input">
+            </div>
+            <div class="input-row">
+              <label for="brokerPct">Broker Commission (%)</label>
+              <input type="text" id="brokerPct" value="6" inputmode="decimal" class="pct-input">
+            </div>
+            <div class="computed-row">
+              <label>Commission ($)</label>
+              <span class="computed-value" id="commissionDollars">—</span>
+            </div>
+          </div>
+          <div class="section-total">
+            <label>Net After Commission</label>
+            <span class="total-value" id="netAfterCommission">—</span>
+          </div>
+        </div>
+
+        <!-- COL 2: Transaction Costs -->
+        <div class="input-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <h2>Transaction Costs <span style="font-size:var(--text-xs);font-weight:500;color:var(--color-text-muted);margin-left:4px;">(MA Defaults)</span></h2>
+          </div>
+          <div class="section-body">
+            <div class="input-row">
+              <label for="deedStampRate">Deed Stamps (per $1,000)</label>
+              <input type="text" id="deedStampRate" value="4.56" inputmode="decimal" class="pct-input">
+            </div>
+            <div class="computed-row">
+              <label>Deed Stamp Cost</label>
+              <span class="computed-value" id="deedStampCost">—</span>
+            </div>
+            <hr class="section-divider">
+            <div class="input-row">
+              <label for="sellerClosingCosts">Seller's Closing Costs</label>
+              <input type="text" id="sellerClosingCosts" value="$2,000" inputmode="numeric" class="money-input">
+            </div>
+            <div class="input-row">
+              <label for="smokeDetectors">Smoke/CO Certificate</label>
+              <input type="text" id="smokeDetectors" value="$2,000" inputmode="numeric" class="money-input">
+            </div>
+            <div class="input-row">
+              <label for="otherCosts">Other Costs</label>
+              <input type="text" id="otherCosts" value="$0" inputmode="numeric" class="money-input">
+            </div>
+          </div>
+          <div class="section-total">
+            <label>Total Transaction Costs</label>
+            <span class="total-value" id="totalClosingCosts">—</span>
+          </div>
+        </div>
+
+        <!-- COL 3: Net Proceeds -->
+        <div class="input-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            <h2>Net Proceeds</h2>
+          </div>
+          <div class="section-body">
+            <div class="computed-row">
+              <label>Total Deductions</label>
+              <span class="computed-value" id="totalDeductions">—</span>
+            </div>
+            <div class="computed-row">
+              <label>Net Sale Price</label>
+              <span class="computed-value" id="netSalePrice">—</span>
+            </div>
+            <div class="computed-row">
+              <label>Less: Mortgage Payoff</label>
+              <span class="computed-value" id="mortgagePayoffDisplay">—</span>
+            </div>
+          </div>
+          <div class="section-total" style="border-top-color: var(--color-accent);">
+            <label style="color:var(--color-accent); font-weight:800;">CASH TO SELLER</label>
+            <span class="total-value" id="cashToSeller" style="color:var(--color-accent);">—</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ===== SECTION 2: Cost Basis ===== -->
+      <div class="calc-sections">
+
+        <!-- COL 1: Original Purchase -->
+        <div class="input-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <h2>Original Purchase</h2>
+          </div>
+          <div class="section-body">
+            <div class="input-row">
+              <label for="purchasePrice">Purchase Price</label>
+              <input type="text" id="purchasePrice" value="$400,000" inputmode="numeric" class="money-input">
+            </div>
+            <div class="input-row">
+              <label for="purchaseClosingCosts">Closing Costs at Purchase</label>
+              <input type="text" id="purchaseClosingCosts" value="$6,366" inputmode="numeric" class="money-input">
+            </div>
+            <div class="input-row">
+              <label for="capitalImprovements">Capital Improvements</label>
+              <input type="text" id="capitalImprovements" value="$0" inputmode="numeric" class="money-input">
+            </div>
+          </div>
+          <div class="section-total">
+            <label>Initial Cost Basis</label>
+            <span class="total-value" id="initialCostBasis">—</span>
+          </div>
+        </div>
+
+        <!-- COL 2: Property Details & Depreciation -->
+        <div class="input-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <h2>Property &amp; Depreciation</h2>
+          </div>
+          <div class="section-body">
+            <div class="input-row">
+              <label for="totalUnits">Total Units</label>
+              <input type="text" id="totalUnits" value="3" inputmode="numeric">
+            </div>
+            <div class="input-row">
+              <label for="incomeUnits">Rental / Income Units</label>
+              <input type="text" id="incomeUnits" value="2" inputmode="numeric">
+            </div>
+            <div class="computed-row">
+              <label>Rental Percentage</label>
+              <span class="computed-value" id="rentalPct">—</span>
+            </div>
+            <hr class="section-divider">
+            <div class="input-row">
+              <label for="depreciableBasis">Depreciable Basis — Building</label>
+              <input type="text" id="depreciableBasis" value="$325,000" inputmode="numeric" class="money-input">
+            </div>
+            <div class="input-row">
+              <label for="yearsOwned">Years Owned</label>
+              <input type="text" id="yearsOwned" value="3" inputmode="numeric">
+            </div>
+            <div class="computed-row">
+              <label>Annual Depreciation</label>
+              <span class="computed-value" id="annualDepreciation">—</span>
+            </div>
+            <div class="dep-note">Building: 27.5 yrs &nbsp;|&nbsp; Closing Costs &amp; Improvements: 30 yrs</div>
+          </div>
+        </div>
+
+        <!-- COL 3: Adjusted Basis -->
+        <div class="input-section">
+          <div class="section-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <h2>Adjusted Basis</h2>
+          </div>
+          <div class="section-body">
+            <div class="computed-row">
+              <label>Total Depreciation Recapture</label>
+              <span class="computed-value" id="totalDepreciation">—</span>
+            </div>
+          </div>
+          <div class="section-total" style="border-top-color: var(--color-accent);">
+            <label style="color:var(--color-accent); font-weight:800;">Adjusted Cost Basis</label>
+            <span class="total-value" id="adjustedCostBasis" style="color:var(--color-accent);">—</span>
+          </div>
+          <div class="computed-sub-note" style="padding: var(--space-2) var(--space-3);">(Initial Cost Basis − Depreciation)</div>
+        </div>
+
+      </div>
+
+      <!-- ===== SECTION 3: Tax Rates ===== -->
+      <section class="tax-rates-section">
+        <h2>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Tax Rates
+          <span style="font-size:var(--text-xs);font-weight:500;color:var(--color-text-muted);margin-left:4px;">(MA Defaults — Override as Needed)</span>
+        </h2>
+        <div class="tax-rates-row">
+          <div class="tax-rate-group">
+            <label for="fedCapGainRate">Federal Cap Gains Rate</label>
+            <select id="fedCapGainRate">
+              <option value="0">0%</option>
+              <option value="12">12%</option>
+              <option value="15" selected>15%</option>
+              <option value="20">20%</option>
+            </select>
+          </div>
+          <div class="tax-rate-group">
+            <label for="niitRate">NIIT Rate (%)</label>
+            <input type="text" id="niitRate" value="3.8" inputmode="decimal" class="pct-input">
+          </div>
+          <div class="tax-rate-group">
+            <label for="fedDepRecaptureRate">Fed. Dep. Recapture Rate (%)</label>
+            <input type="text" id="fedDepRecaptureRate" value="25" inputmode="decimal" class="pct-input">
+          </div>
+          <div class="tax-rate-group">
+            <label for="stateCapGainRate">State Cap Gains Rate (%)</label>
+            <input type="text" id="stateCapGainRate" value="5" inputmode="decimal" class="pct-input">
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SECTION 4: Results ===== -->
+      <section class="results-section" id="resultsSection">
+        <div class="results-header">
+          <h2>Tax Breakdown at Target Sale Price</h2>
+        </div>
+        <div class="results-grid">
+          <div class="result-card">
+            <div class="result-label">Total Gain</div>
+            <div class="result-value" id="resultTotalGain">—</div>
+          </div>
+          <div class="result-card">
+            <div class="result-label">Capital Gain</div>
+            <div class="result-value" id="resultCapitalGain">—</div>
+          </div>
+          <div class="result-card">
+            <div class="result-label">Federal Tax</div>
+            <div class="result-value" id="resultFederalTax">—</div>
+          </div>
+          <div class="result-card">
+            <div class="result-label">State Tax</div>
+            <div class="result-value" id="resultStateTax">—</div>
+          </div>
+          <div class="result-card">
+            <div class="result-label">Total Tax Liability</div>
+            <div class="result-value negative" id="resultTotalTax">—</div>
+          </div>
+          <div class="result-card">
+            <div class="result-label">True Net Proceeds</div>
+            <div class="result-value" id="resultNetProceeds">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SECTION 5: Sale Price Range Table ===== -->
+      <section class="range-section" id="rangeSection">
+        <h2>Sale Price Range Analysis</h2>
+        <div class="range-inputs">
+          <div class="range-input-group">
+            <label for="saleLow">Low Sale Price</label>
+            <input type="text" id="saleLow" value="$625,000" inputmode="numeric" class="money-input">
+          </div>
+          <div class="range-input-group">
+            <label for="saleHigh">High Sale Price</label>
+            <input type="text" id="saleHigh" value="$675,000" inputmode="numeric" class="money-input">
+          </div>
+        </div>
+        <div class="range-table-wrap">
+          <table class="range-table" id="rangeTable">
+            <thead id="rangeHead"></thead>
+            <tbody id="rangeBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== DEAL SUMMARY ===== -->
+      <section class="deal-summary" id="dealSummary">
+        <h3>Deal Summary</h3>
+        <p id="dealSummaryText">Enter your numbers above to see a plain English analysis.</p>
+      </section>
+
+      <!-- ===== DISCLAIMER ===== -->
+      <div class="tax-disclaimer">
+        <p><strong>Disclaimer:</strong> This analysis provides estimates only and is not tax advice. Actual tax liability depends on your complete tax situation. Consult a qualified tax professional or CPA before making any decisions.</p>
+      </div>
+
+      <!-- ===== ACTIONS ===== -->
+      <div class="actions-bar">
+        <button class="btn btn-primary" id="savePdfBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          Save as PDF
+        </button>
+        <button class="btn btn-outline" id="resetBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          Reset
+        </button>
+      </div>
+
+    </div><!-- /calculatorSections -->
+
+  </main>
+
+  <footer class="contact-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="./assets/fortified-logo-white.png" alt="Fortified Realty Group" height="24">
+        <div class="footer-text">
+          <strong>Fortified Realty Group, LLC</strong><br>
+          One North Main Street, Fall River, MA 02720
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="tel:+15086918035" class="footer-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          (508) 691-8035
+        </a>
+        <a href="https://fortifiedrealty.net" class="footer-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          fortifiedrealty.net
+        </a>
+        <a href="https://g.page/r/CbFCYN2LnvC7EAE/review" class="footer-link review-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Leave a Review
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+  <script src="./sale-analyzer.js"></script>
+</body>
+</html>
