@@ -799,28 +799,35 @@
       doc.text(`Phase ${phase.phase}  |  Months ${phase.monthStart}–${phase.phaseEnd}  |  Save ${fmt(phase.savings)}/month`, boxX + 8, actionY + 13);
       actionY += 30; // gap below phase header before first checkbox line
 
-      // Individual month lines
+      // Individual paycheck lines (frequency-aware)
+      const pdfPayFreq = document.getElementById('payFrequency')?.value || 'biweekly';
+      const checksPerMo = pdfPayFreq === 'weekly' ? 4 : pdfPayFreq === 'biweekly' ? 2 : 1;
+      const pdfFreqLabel = pdfPayFreq === 'weekly' ? 'week' : pdfPayFreq === 'biweekly' ? 'paycheck' : 'month';
+      const perCheckAmt = Math.round(phase.savings / (pdfPayFreq === 'weekly' ? 52/12 : pdfPayFreq === 'biweekly' ? 26/12 : 1));
+      const lineH = checksPerMo > 2 ? 10 : 12;
+      const checkFontSize = checksPerMo > 2 ? 7.5 : 8.5;
+
       for (let mo = phase.monthStart; mo <= phase.phaseEnd; mo++) {
-        if (actionY > pageBottom) {
-          doc.addPage();
-          actionY = margin + 10;
-        }
         const monthStr = monthLabel(mo - 1);
-        setFont(9, 'normal', DARK);
-        // Draw a checkbox square
-        doc.setDrawColor(0, 52, 77);
-        doc.setLineWidth(0.4);
-        doc.setFillColor(255, 255, 255);
-        doc.rect(boxX + 4, actionY - 5, 5, 5, 'FD');
-        const addl = Math.max(0, phase.savings - currentMonthlySavings);
-        const pdfPayFreq = document.getElementById('payFrequency')?.value || 'biweekly';
-        const pdfChecksPerMonth = pdfPayFreq === 'weekly' ? 52/12 : pdfPayFreq === 'biweekly' ? 26/12 : 1;
-        const pdfFreqLabel = pdfPayFreq === 'weekly' ? 'week' : pdfPayFreq === 'biweekly' ? 'paycheck' : 'month';
-        const pdfPerCheck = fmt(Math.round(phase.savings / pdfChecksPerMonth));
-        const depositText = `${monthStr}  —  ${fmt(phase.savings)}/mo (${pdfPerCheck}/${pdfFreqLabel}) into your ${vehicleLabel}`;
-        doc.text(depositText, boxX + 14, actionY + 1);
-        actionY += 15;
+        for (let ck = 1; ck <= checksPerMo; ck++) {
+          if (actionY > pageBottom) {
+            doc.addPage();
+            actionY = margin + 10;
+          }
+          setFont(checkFontSize, 'normal', DARK);
+          doc.setDrawColor(0, 52, 77);
+          doc.setLineWidth(0.3);
+          doc.setFillColor(255, 255, 255);
+          doc.rect(boxX + 4, actionY - 4, 4, 4, 'FD');
+
+          const checkLabel = checksPerMo === 1
+            ? monthStr + '  \u2014  Deposit ' + fmt(perCheckAmt) + ' into your ' + vehicleLabel
+            : monthStr + ' (' + pdfFreqLabel + ' ' + ck + ')  \u2014  ' + fmt(perCheckAmt) + ' into your ' + vehicleLabel;
+          doc.text(checkLabel, boxX + 12, actionY + 0.5);
+          actionY += lineH;
+        }
       }
+
 
       // Quarterly milestone: at end of each 2 phases (every ~6 months)
       if ((p + 1) % 2 === 0 || p === phases.length - 1) {
