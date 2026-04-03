@@ -228,7 +228,7 @@
     /* Portfolio summary grid with 6 cards */
     .results-grid-6 {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 0;
     }
 
@@ -240,7 +240,7 @@
       .results-grid-6 { grid-template-columns: repeat(2, 1fr); }
     }
 
-    .results-grid-6 .result-card:nth-child(6) { border-right: none; }
+    .results-grid-6 .result-card:nth-child(3n) { border-right: none; }
 
     @media (max-width: 900px) {
       .results-grid-6 .result-card:nth-child(3n) { border-right: none; }

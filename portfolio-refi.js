@@ -76,7 +76,6 @@
       '<td class="col-money"><input type="text" class="money-input prop-input" id="propHigh' + i + '" value="' + (d.high || '') + '" placeholder="$0" inputmode="numeric"></td>' +
       '<td class="col-action"><select id="propAction' + i + '" class="prop-input">' +
         '<option value="Refi"' + (d.action === 'Refi' || !d.action ? ' selected' : '') + '>Refi</option>' +
-        '<option value="Keep"' + (d.action === 'Keep' ? ' selected' : '') + '>Keep</option>' +
         '<option value="Skip"' + (d.action === 'Skip' ? ' selected' : '') + '>Skip</option>' +
       '</select></td>';
 
@@ -717,6 +716,47 @@
       y += 5;
     }
 
+    // ===== SENSITIVITY TABLE ON PDF =====
+    var sensTable = document.getElementById('sensitivityTable');
+    if (sensTable && sensTable.rows.length > 1) {
+      if (y > H - 50) { doc.addPage(); y = margin + 5; doc.setFillColor.apply(doc, white); doc.rect(0, 0, W, H, 'F'); doc.setFillColor.apply(doc, teal); doc.rect(0, 0, W, 3, 'F'); }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor.apply(doc, teal);
+      doc.text('APPRAISED VALUE SENSITIVITY', margin, y);
+      var sensHeaders = [];
+      sensTable.querySelector('thead tr')?.querySelectorAll('th').forEach(function(th) { sensHeaders.push(th.textContent); });
+      var sensBody = [];
+      var sensCellStyles = {};
+      sensTable.querySelectorAll('tbody tr').forEach(function(tr, ri) {
+        var row = [];
+        tr.querySelectorAll('td').forEach(function(td, ci) {
+          row.push(td.textContent);
+          if (td.classList.contains('cond-green')) { if (!sensCellStyles[ri]) sensCellStyles[ri] = {}; sensCellStyles[ri][ci] = { fillColor: greenBg, textColor: green }; }
+          else if (td.classList.contains('cond-yellow')) { if (!sensCellStyles[ri]) sensCellStyles[ri] = {}; sensCellStyles[ri][ci] = { fillColor: yellowBg, textColor: yellow }; }
+          else if (td.classList.contains('cond-red')) { if (!sensCellStyles[ri]) sensCellStyles[ri] = {}; sensCellStyles[ri][ci] = { fillColor: redBg, textColor: red }; }
+        });
+        sensBody.push(row);
+      });
+      doc.autoTable({
+        head: [sensHeaders], body: sensBody, startY: y + 3,
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 7, cellPadding: 1.8, textColor: darkText, lineColor: [200,200,200], lineWidth: 0.2, font: 'helvetica', halign: 'center' },
+        headStyles: { fillColor: teal, textColor: white, fontStyle: 'bold', fontSize: 7, halign: 'center' },
+        columnStyles: { 0: { halign: 'center', fontStyle: 'bold' } },
+        alternateRowStyles: { fillColor: [250,250,252] },
+        didParseCell: function(data) {
+          if (data.section === 'body' && sensCellStyles[data.row.index] && sensCellStyles[data.row.index][data.column.index]) {
+            var s = sensCellStyles[data.row.index][data.column.index];
+            data.cell.styles.fillColor = s.fillColor;
+            data.cell.styles.textColor = s.textColor;
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      });
+      y = doc.lastAutoTable.finalY + 4;
+    }
+
     // ===== DEAL SUMMARY BOX + QR =====
     var fy = H - 10;
     var afterY = y;
@@ -758,9 +798,9 @@
 
       var textAreaH = bottomZoneHeight - 8;
       var textW = summaryBoxWidth - 6;
-      var fontSize = 6.5;
+      var fontSize = 10;
       var splitText;
-      [6.5, 6, 5.5, 5, 4.5].forEach(function (trySize) {
+      [10, 9, 8, 7, 6.5].forEach(function (trySize) {
         doc.setFontSize(trySize);
         splitText = doc.splitTextToSize(dealStr, textW);
         if (splitText.length * (trySize * 0.45) <= textAreaH) {
