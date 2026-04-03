@@ -226,15 +226,10 @@
       summaryEl.className = cashToSeller > salePrice * 0.3 ? 'deal-summary positive' : 'deal-summary caution';
     }
 
-    // Commission context
-    sentences.push(
-      'The broker commission alone is ' + fmt(commission) + ' — that\'s the biggest single cost.'
-    );
-
     // Selling costs eat up equity warning
-    if (cashToSeller > 0 && commission > cashToSeller * 0.5) {
+    if (cashToSeller > 0 && totalCosts > cashToSeller * 0.5) {
       sentences.push(
-        'Selling costs eat up more than half your equity. Consider whether now is the right time to sell.'
+        'Your total selling costs are a significant portion of your equity. Make sure the timing is right.'
       );
     }
 
