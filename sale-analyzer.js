@@ -122,7 +122,7 @@
 
     var taxResult = computeTax(
       netSalePrice, cashToSeller, adjustedCostBasis, totalDepreciationRecapture,
-      fedCapGainRate, niitRate, fedDepRecaptureRate, stateCapGainRate
+      fedCapGainRate, niitRate, fedDepRecaptureRate, stateCapGainRate, yearsOwned
     );
 
     setText('resultTotalGain', fmt(taxResult.totalGain));
@@ -168,16 +168,21 @@
 
   // ===== TAX COMPUTATION HELPER =====
   function computeTax(netSalePrice, cashToSeller, adjustedCostBasis, totalDepreciationRecapture,
-                      fedCapGainRate, niitRate, fedDepRecaptureRate, stateCapGainRate) {
+                      fedCapGainRate, niitRate, fedDepRecaptureRate, stateCapGainRate, yearsOwned) {
     var totalGain   = netSalePrice - adjustedCostBasis;
     var capitalGain = Math.max(0, totalGain - totalDepreciationRecapture);
 
+    // Short-term (< 1 year): taxed at ordinary income rates, not capital gains
+    var isShortTerm = (yearsOwned || 99) < 1;
+    var effectiveFedRate   = isShortTerm ? 24 : fedCapGainRate;  // ~24% ordinary income estimate
+    var effectiveStateRate = isShortTerm ? 12 : stateCapGainRate; // MA short-term = 12%
+
     var fedDepRecaptureTax = totalDepreciationRecapture * (fedDepRecaptureRate / 100);
-    var fedCapGainTax      = capitalGain * ((fedCapGainRate + niitRate) / 100);
+    var fedCapGainTax      = capitalGain * ((effectiveFedRate + niitRate) / 100);
     var totalFederalTax    = fedDepRecaptureTax + fedCapGainTax;
 
-    var stateDepRecaptureTax = totalDepreciationRecapture * (stateCapGainRate / 100);
-    var stateCapGainTax      = capitalGain * (stateCapGainRate / 100);
+    var stateDepRecaptureTax = totalDepreciationRecapture * (effectiveStateRate / 100);
+    var stateCapGainTax      = capitalGain * (effectiveStateRate / 100);
     var totalStateTax        = stateDepRecaptureTax + stateCapGainTax;
 
     var totalTaxLiability = totalFederalTax + totalStateTax;
@@ -247,7 +252,7 @@
 
       var tax = computeTax(
         net, cash, adjustedCostBasis, totalDepreciationRecapture,
-        fedCapGainRate, niitRate, fedDepRecaptureRate, stateCapGainRate
+        fedCapGainRate, niitRate, fedDepRecaptureRate, stateCapGainRate, yearsOwned
       );
 
       return {
@@ -342,6 +347,11 @@
     var depRecapturePct = totalTax > 0 ? (depRecaptureTotalTax / totalTax) * 100 : 0;
 
     var sentences = [];
+
+    // Short-term capital gains warning
+    if (d.yearsOwned < 1) {
+      sentences.push('WARNING: You\'ve owned this property less than 1 year. This is a short-term capital gain, which is taxed at ordinary income rates (estimated 24% federal + 12% MA) instead of the lower long-term capital gains rates. This significantly increases your tax liability. Consider holding until you hit the 1-year mark if possible.');
+    }
 
     // Strong: net proceeds > 50% of sale price
     if (trueNetProceeds > salePrice * 0.5) {
