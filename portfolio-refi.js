@@ -44,18 +44,7 @@
   var propertyBody = document.getElementById('propertyBody');
   var propertyCount = 0;
 
-  var defaultRows = [
-    {
-      addr: '222 Main St, Fall River, MA',
-      noi: '$7,000',
-      mtg: '$200,000',
-      pi: '$3,200',
-      units: '6',
-      low: '$900,000',
-      high: '$1,000,000',
-      action: 'Refi'
-    }
-  ];
+  var defaultRows = [];
 
   function addPropertyRow(data) {
     if (propertyCount >= MAX_PROPERTIES) return;
