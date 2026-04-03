@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Refi Analyzer — Fortified Realty Group</title>
+  <meta name="description" content="Free Portfolio Refinance Analyzer. See your total equity position across all properties and model a portfolio-wide refinance. Fortified Realty Group, One North Main Street, Fall River, MA 02720.">
+  <meta name="theme-color" content="#00344D">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./base.css">
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
+  <style>
+    /* ===== PORTFOLIO REFI — PAGE-SPECIFIC STYLES ===== */
+
+    .property-grid-section {
+      margin-bottom: var(--space-8);
+    }
+
+    .property-grid-section h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: var(--space-4);
+    }
+
+    .property-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .property-table {
+      min-width: 900px;
+      border-collapse: collapse;
+      font-size: var(--text-xs);
+      font-variant-numeric: tabular-nums;
+      width: 100%;
+    }
+
+    .property-table th,
+    .property-table td {
+      padding: var(--space-1) var(--space-2);
+      text-align: center;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--color-divider);
+    }
+
+    .property-table thead th {
+      background: var(--color-surface-2);
+      color: var(--color-accent);
+      font-weight: 700;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 2px solid var(--color-accent);
+      padding: var(--space-2) var(--space-2);
+    }
+
+    .property-table td:first-child,
+    .property-table th:first-child {
+      text-align: center;
+      width: 32px;
+      color: var(--color-text-faint);
+      font-weight: 600;
+    }
+
+    .property-table tbody tr:hover td {
+      background: rgba(56, 189, 248, 0.04);
+    }
+
+    .property-table input[type="text"],
+    .property-table input[type="number"] {
+      width: 100%;
+      padding: var(--space-1) var(--space-2);
+      background: var(--color-input-bg);
+      border: 1px solid var(--color-input-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-input-text);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .property-table input[type="text"].addr-input {
+      text-align: left;
+      min-width: 190px;
+    }
+
+    .property-table input:focus {
+      outline: none;
+      border-color: var(--color-input-focus);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15);
+    }
+
+    .property-table input::placeholder {
+      color: var(--color-text-faint);
+    }
+
+    .property-table select {
+      padding: var(--space-1) var(--space-2);
+      background: var(--color-input-bg);
+      border: 1px solid var(--color-input-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-input-text);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      cursor: pointer;
+      min-width: 70px;
+    }
+
+    .property-table select:focus {
+      outline: none;
+      border-color: var(--color-input-focus);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15);
+    }
+
+    .property-table .col-addr { min-width: 200px; }
+    .property-table .col-money { min-width: 100px; }
+    .property-table .col-units { min-width: 55px; }
+    .property-table .col-action { min-width: 75px; }
+
+    .add-property-row {
+      padding: var(--space-3) var(--space-4);
+      display: flex;
+      justify-content: flex-start;
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-divider);
+    }
+
+    /* Underwriting criteria row */
+    .underwriting-section {
+      margin-bottom: var(--space-8);
+    }
+
+    .underwriting-section h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: var(--space-4);
+    }
+
+    /* Refi analysis tables */
+    .refi-analysis-section {
+      margin-bottom: var(--space-8);
+    }
+
+    .refi-analysis-section h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: var(--space-4);
+    }
+
+    .refi-analysis-section h3 {
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: 700;
+      color: var(--color-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: var(--space-3);
+    }
+
+    /* Worth-it analysis */
+    .worth-it-section {
+      margin-top: var(--space-6);
+    }
+
+    .worth-it-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+
+    .worth-it-card {
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-3) var(--space-4);
+      text-align: center;
+    }
+
+    .worth-it-card .wi-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      margin-bottom: var(--space-1);
+    }
+
+    .worth-it-card .wi-value {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--color-text);
+    }
+
+    .wi-value.positive { color: var(--color-result-positive); }
+    .wi-value.negative { color: var(--color-result-negative); }
+    .wi-value.caution { color: var(--color-result-warning); }
+
+    /* Sensitivity table section */
+    .sensitivity-section {
+      margin-bottom: var(--space-8);
+    }
+
+    .sensitivity-section h2 {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: var(--space-4);
+    }
+
+    /* Portfolio summary grid with 6 cards */
+    .results-grid-6 {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0;
+    }
+
+    @media (max-width: 900px) {
+      .results-grid-6 { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 600px) {
+      .results-grid-6 { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .results-grid-6 .result-card:nth-child(6) { border-right: none; }
+
+    @media (max-width: 900px) {
+      .results-grid-6 .result-card:nth-child(3n) { border-right: none; }
+      .results-grid-6 .result-card:nth-child(6) { border-right: none; }
+    }
+
+    @media (max-width: 600px) {
+      .results-grid-6 .result-card:nth-child(2n) { border-right: none; }
+    }
+
+    /* Totals row in refi table */
+    .range-table tr.totals-row td {
+      border-top: 2px solid var(--color-accent);
+      font-weight: 700;
+      color: var(--color-accent);
+      background: var(--color-surface-2);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="./index.html" class="logo-link">
+        <img src="./assets/fortified-logo-white.png" alt="Fortified Realty Group" height="36">
+        <span class="logo-text">Real Estate Calculators</span>
+      </a>
+      <a href="./index.html" class="nav-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        All Tools
+      </a>
+    </div>
+  </header>
+
+  <main class="calc-page" id="calcContent">
+
+    <div class="calc-title-area">
+      <h1>Portfolio Refi Analyzer</h1>
+      <p>See your total equity position across all properties and model a portfolio-wide refinance.</p>
+    </div>
+
+    <!-- SECTION 1: PROPERTY GRID -->
+    <section class="property-grid-section">
+      <h2>Property Grid</h2>
+      <div class="property-table-wrap">
+        <table class="property-table" id="propertyGrid">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th class="col-addr">Address</th>
+              <th class="col-money">Monthly NOI</th>
+              <th class="col-money">Mtg Balance</th>
+              <th class="col-money">Monthly P+I</th>
+              <th class="col-units">Units</th>
+              <th class="col-money">Low Value</th>
+              <th class="col-money">High Value</th>
+              <th class="col-action">Action</th>
+            </tr>
+          </thead>
+          <tbody id="propertyBody"></tbody>
+        </table>
+        <div class="add-property-row">
+          <button class="btn btn-outline" id="addPropertyBtn" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Property
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: UNDERWRITING CRITERIA -->
+    <section class="underwriting-section">
+      <h2>Underwriting Criteria</h2>
+      <div class="range-inputs">
+        <div class="range-input-group">
+          <label for="refiLtv">LTV (%)</label>
+          <input type="text" id="refiLtv" value="75" inputmode="decimal">
+        </div>
+        <div class="range-input-group">
+          <label for="refiRate">Interest Rate (%)</label>
+          <input type="text" id="refiRate" value="8" inputmode="decimal">
+        </div>
+        <div class="range-input-group">
+          <label for="refiTerm">Loan Term (months)</label>
+          <input type="text" id="refiTerm" value="360" inputmode="numeric">
+        </div>
+        <div class="range-input-group">
+          <label for="refiClosingCost">Closing Costs ($)</label>
+          <input type="text" id="refiClosingCost" value="$20,000" inputmode="numeric" class="money-input">
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: PORTFOLIO SUMMARY -->
+    <section class="results-section" id="portfolioSummarySection">
+      <div class="results-header">
+        <h2>Portfolio Summary</h2>
+      </div>
+      <div class="results-grid-6">
+        <div class="result-card">
+          <div class="result-label">Total Value (Low)</div>
+          <div class="result-value neutral" id="resultValueLow">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">Total Value (High)</div>
+          <div class="result-value neutral" id="resultValueHigh">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">Total Mtg Balance</div>
+          <div class="result-value neutral" id="resultMtgBalance">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">Total Monthly NOI</div>
+          <div class="result-value neutral" id="resultTotalNOI">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">Total Current P+I</div>
+          <div class="result-value neutral" id="resultCurrentPI">—</div>
+        </div>
+        <div class="result-card">
+          <div class="result-label">Total Doors</div>
+          <div class="result-value neutral" id="resultTotalDoors">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: REFI ANALYSIS -->
+    <section class="refi-analysis-section" id="refiAnalysisSection">
+      <h2>Refi Analysis</h2>
+      <h3>Per-Property Breakdown</h3>
+      <div class="range-table-wrap">
+        <table class="range-table" id="refiPropertyTable">
+          <thead>
+            <tr>
+              <th>Address</th>
+              <th>Current Mtg</th>
+              <th>Monthly NOI</th>
+              <th>Appraised (Mid)</th>
+              <th>New Mortgage</th>
+              <th>New P+I</th>
+              <th>Cash Flow</th>
+              <th>DSCR</th>
+              <th>Cash Out</th>
+            </tr>
+          </thead>
+          <tbody id="refiPropertyBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Worth It? Analysis -->
+      <div class="worth-it-section" id="worthItSection">
+        <h3>Refi Worth It?</h3>
+        <div class="worth-it-grid" id="worthItGrid"></div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: SENSITIVITY TABLE -->
+    <section class="sensitivity-section" id="sensitivitySection">
+      <h2>Appraised Value Sensitivity</h2>
+      <div class="range-table-wrap">
+        <table class="range-table" id="sensitivityTable">
+          <thead id="sensitivityHead"></thead>
+          <tbody id="sensitivityBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- DEAL SUMMARY -->
+    <section class="deal-summary" id="dealSummary">
+      <h3>Deal Summary</h3>
+      <p id="dealSummaryText">Enter your property details above to see a plain English analysis.</p>
+    </section>
+
+    <!-- ACTIONS -->
+    <div class="actions-bar">
+      <button class="btn btn-primary" id="savePdfBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        Save as PDF
+      </button>
+      <button class="btn btn-outline" id="resetBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Reset
+      </button>
+    </div>
+
+  </main>
+
+  <footer class="contact-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="./assets/fortified-logo-white.png" alt="Fortified Realty Group" height="24">
+        <div class="footer-text">
+          <strong>Fortified Realty Group, LLC</strong><br>
+          One North Main Street, Fall River, MA 02720
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="tel:+15086918035" class="footer-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          (508) 691-8035
+        </a>
+        <a href="https://fortifiedrealty.net" class="footer-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          fortifiedrealty.net
+        </a>
+        <a href="https://g.page/r/CbFCYN2LnvC7EAE/review" class="footer-link review-link" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Leave a Review
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./app.js"></script>
+  <script src="./portfolio-refi.js"></script>
+</body>
+</html>
