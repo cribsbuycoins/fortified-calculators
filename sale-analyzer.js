@@ -40,6 +40,64 @@
     calculate();
   });
 
+  // ===== DOWNLOAD CHECKLIST PDF =====
+  document.getElementById('downloadChecklist')?.addEventListener('click', function () {
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+    var W = 215.9, mg = 20, y = mg;
+
+    try { doc.addImage('./assets/fortified-logo-print.png', 'PNG', mg, y, 60, 11); } catch(e) {}
+    y += 20;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(0, 52, 77);
+    doc.text('Questions for Your Accountant', mg, y);
+    y += 8;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Before running the Sale Analyzer, have these answers ready:', mg, y);
+    y += 14;
+
+    var questions = [
+      'What was the original purchase price of the property?',
+      'What were the closing costs at purchase?',
+      'What capital improvements have been documented since purchase?',
+      'What is the depreciable basis for the building (not land)?',
+      'How many years have I owned this property?',
+      'What is the annual depreciation amount being taken?',
+      'Am I subject to NIIT (Net Investment Income Tax)?',
+      'What is my federal capital gains bracket (0%, 15%, or 20%)?',
+      'Should I consider a 1031 exchange before selling?'
+    ];
+
+    questions.forEach(function(q, i) {
+      doc.setDrawColor(0, 52, 77);
+      doc.setLineWidth(0.4);
+      doc.setFillColor(255, 255, 255);
+      doc.rect(mg, y - 4, 5, 5, 'FD');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(11);
+      doc.setTextColor(26, 26, 26);
+      doc.text((i + 1) + '.  ' + q, mg + 10, y);
+      y += 14;
+    });
+
+    y += 10;
+    doc.setDrawColor(0, 52, 77);
+    doc.setLineWidth(0.3);
+    doc.line(mg, y, W - mg, y);
+    y += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Fortified Realty Group, LLC  |  One North Main Street, Fall River, MA 02720  |  (508) 691-8035', mg, y);
+
+    doc.save('Fortified-Accountant-Checklist.pdf');
+  });
+
   // ===== MONEY INPUT EVENT HANDLERS =====
   document.querySelectorAll('.money-input').forEach(function (el) {
     el.addEventListener('focus', function () { stripMoneyInput(el); });
